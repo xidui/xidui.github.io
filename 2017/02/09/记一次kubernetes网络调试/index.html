@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+
+    
+
+    
+    <title>记一次kubernetes网络调试 | xidui is very lazy</title>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+        <meta name="keywords" content="kubernetes,iptables">
+    
+    <meta name="description" content="背景过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：">
+<meta name="keywords" content="kubernetes,iptables">
+<meta property="og:type" content="article">
+<meta property="og:title" content="记一次kubernetes网络调试">
+<meta property="og:url" content="http://xidui.github.io/2017/02/09/记一次kubernetes网络调试/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="背景过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http://xidui.github.io/images/kubernetes-service.png">
+<meta property="og:updated_time" content="2017-02-11T08:44:32.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="记一次kubernetes网络调试">
+<meta name="twitter:description" content="背景过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：">
+<meta name="twitter:image" content="http://xidui.github.io/images/kubernetes-service.png">
+    
+
+    
+        <link rel="alternate" href="/" title="xidui is very lazy" type="application/atom+xml">
+    
+
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/titillium-web/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/3.3.1/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+        <link rel="stylesheet" href="/libs/justified-gallery/justifiedGallery.min.css">
+    
+    
+    
+
+
+</head>
+</html>
+<body>
+    <div id="wrap">
+        <header id="header">
+    <div id="header-outer" class="outer">
+        <div class="container">
+            <div class="container-inner">
+                <div id="header-title">
+                    <h1 class="logo-wrap">
+                        <a href="/" class="logo"></a>
+                    </h1>
+                    
+                </div>
+                <div id="header-inner" class="nav-container">
+                    <a id="main-nav-toggle" class="nav-icon fa fa-bars"></a>
+                    <div class="nav-container-inner">
+                        <ul id="main-nav">
+                            
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/">Home</a>
+                                </li>
+                            
+                                        
+                                    
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/about/index.html">About</a>
+                                </li>
+                            
+                        </ul>
+                        <nav id="sub-nav">
+                            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+        <div class="container">
+            <div class="main-body container-inner">
+                <div class="main-body-inner">
+                    <section id="main">
+                        <div class="main-body-header">
+    <h1 class="header">
+    
+    uncategorized
+    </h1>
+</div>
+
+                        <div class="main-body-content">
+                            <article id="post-记一次kubernetes网络调试" class="article article-single article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+        记一次kubernetes网络调试
+        </h1>
+    
+
+            </header>
+        
+        
+            <div class="article-meta">
+                
+    <div class="article-date">
+        <a href="/2017/02/09/记一次kubernetes网络调试/" class="article-date">
+            <time datetime="2017-02-09T23:39:23.000Z" itemprop="datePublished">2017-02-09</time>
+        </a>
+    </div>
+
+		
+
+                
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/iptables/">iptables</a>, <a class="tag-link" href="/tags/kubernetes/">kubernetes</a>
+    </div>
+
+            </div>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+            <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：<br><a id="more"></a><br><img src="/images/kubernetes-service.png"></p>
+<ul>
+<li>nginx作为反向代理监听互联网的请求</li>
+<li>对于leetcode.com的访问转发到kubernetes service</li>
+<li>通过label将service与pod绑定，并在service层作负载均衡</li>
+</ul>
+<p>两个pod分布在不同的机器上，其中pod2所在的机器是为了这次的扩容而部署的。关于如何在已有的集群中增加机器，可以参考我<a href="http://xidui.github.io/2017/01/03/手动在kubernetes集群中添加节点/" target="_blank" rel="noopener">这篇文章</a>。当然手动部署可能不是最方便的，如果想要自动部署，可以去看看关于<a href="https://kubernetes.io/docs/getting-started-guides/kubeadm/" target="_blank" rel="noopener">kubeadm</a>的相关资料。</p>
+<h3 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h3><p>当一切准备就绪并导流的时候，旧机器的log在不断地输出，说明工作正常，但新机器的日志文件没有滚动，请求一个也没有进来。检查pod的状态，发现它是一切正常的:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># kubectl get pod --namespace=noj</span></span><br><span class="line">NAME           READY     STATUS    RESTARTS   AGE</span><br><span class="line">noj-rc-i3aca   1/1       Running   0          2h</span><br><span class="line">noj-rc-vgb5e   1/1       Running   0          2h</span><br></pre></td></tr></table></figure></p>
+<p>而且，<code>noj-rc-vgb5e</code>这个pod也是顺利被分配到slave2并启动的。这说明<code>kubelet</code>和<code>kube-proxy</code>的配置没有问题，不然是无法收到master机器的调度请求从而部署pod的。因此首先怀疑<strong>两台机器网络状态是否不一致</strong>。<br>在slave2执行<code>systemctl stop firewalld</code>，请求陆陆续续地进来了。因此应该就是iptables配置的问题，某些规则配置错误，导致网络包被reject了。在debug之前先贴上网络结构图方便之后说明。</p>
+<img src="/images/networking.png">
+<h3 id="调试纠错"><a href="#调试纠错" class="headerlink" title="调试纠错"></a>调试纠错</h3><h4 id="step1"><a href="#step1" class="headerlink" title="step1"></a>step1</h4><p>由于kubernetes集群的iptables规则较为复杂，执行<code>iptables -L -n</code>和<code>iptables -L -n -t nat</code>发现有上百条记录，对于一条条比对的任务就望而却步了，粗略看了一下一模一样，就连行数都是一样的。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]# iptables -L -n | grep -c ''</span><br><span class="line">135</span><br><span class="line">[root@kubernetes-slave-2 ~]# iptables -L -n -t nat| grep -c ''</span><br><span class="line">174</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">[root@kubernetes-slave-1]#</span><span class="bash"> iptables -L -n | grep -c <span class="string">''</span></span></span><br><span class="line">135</span><br><span class="line"><span class="meta">[root@kubernetes-slave-1]#</span><span class="bash"> iptables -L -n -t nat| grep -c <span class="string">''</span></span></span><br><span class="line">174</span><br></pre></td></tr></table></figure>
+<p><em>这就让我犯难了</em>：既然两台机器的网络环境都一模一样，为什么请求一台能进去，一台进不去呢？</p>
+<h4 id="step2"><a href="#step2" class="headerlink" title="step2"></a>step2</h4><p>我们现在知道的症状有限，还有没有别的可供参考呢？找找其它症状吧。<br>进入slave1的container：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-1]<span class="comment"># kubectl exec -it noj-rc-i3aca bash --namespace=noj</span></span><br><span class="line">root@noj-rc-i3aca:/leetcode/noj<span class="comment"># nslookup google.com</span></span><br><span class="line">Server:         10.254.0.10</span><br><span class="line">Address:        10.254.0.10<span class="comment">#53</span></span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">Name:   google.com</span><br><span class="line">Address: 216.58.194.174</span><br></pre></td></tr></table></figure></p>
+<p>进入slave2的container（其中nslookup的过程花了很久，大约2-3秒）：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2]<span class="comment"># kubectl exec -it noj-rc-vgb5e bash --namespace=noj</span></span><br><span class="line">root@noj-rc-vgb5e:/leetcode/noj<span class="comment"># nslookup google.com</span></span><br><span class="line">Server:         8.8.8.8</span><br><span class="line">Address:        8.8.8.8<span class="comment">#53</span></span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">Name:   google.com</span><br><span class="line">Address: 216.58.194.174</span><br></pre></td></tr></table></figure></p>
+<p>在kubernetes集群中，我部署了dns服务在<code>10.254.0.10</code>，slave2确实将<code>10.254.0.10</code>配置为首选dns服务器，但是slave2并没有使用它或者访问不到它。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@noj-rc-vgb5e:/leetcode/noj<span class="comment"># cat /etc/resolv.conf</span></span><br><span class="line">search noj.svc.cluster.local svc.cluster.local cluster.local</span><br><span class="line">nameserver 10.254.0.10</span><br><span class="line">nameserver 8.8.8.8</span><br><span class="line">nameserver 8.8.4.4</span><br><span class="line">options ndots:5</span><br></pre></td></tr></table></figure></p>
+<p>这也就解释了为什么在slave2执行nslookup那么慢的原因：<code>10.254.0.10</code>失败了，再选择<code>8.8.8.8</code>。</p>
+<h4 id="step3"><a href="#step3" class="headerlink" title="step3"></a>step3</h4><p>slave2访问集群内部服务失败，它是不是也无法跨机器ping通docker呢。</p>
+<p>在slave1上ping master<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-1]<span class="comment"># ping 172.16.92.1</span></span><br><span class="line">PING 172.16.92.1 (172.16.92.1) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.16.92.1: icmp_seq=1 ttl=64 time=2.71 ms</span><br><span class="line">64 bytes from 172.16.92.1: icmp_seq=2 ttl=64 time=2.18 ms</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># ping 172.16.92.1</span></span><br><span class="line">PING 172.16.92.1 (172.16.92.1) 56(84) bytes of data.</span><br><span class="line">--- 172.16.92.1 ping statistics ---</span><br><span class="line">5 packets transmitted, 0 received, 100% packet loss, time 3999ms</span><br></pre></td></tr></table></figure>
+<h4 id="step4"><a href="#step4" class="headerlink" title="step4"></a>step4</h4><p>既然关闭防火墙是可以服务的，那我们一步步在防火墙中添加ACCEPT记录，看看究竟是哪条记录导致网络包被REJECT了。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># iptables -I INPUT 1 -j ACCEPT</span></span><br></pre></td></tr></table></figure></p>
+<p>非常幸运，在INPUT链添加ACCEPT规则后，一切请求马上都正常了，包括step3中的ping也可以正常服务了。</p>
+<p>删掉刚才添加的ACCEPT规则，并在iptables中打日志，看看<code>ping 172.168.92.1</code>的时候会有那些日志进来：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># iptables -I INPUT 1 -j LOG</span></span><br></pre></td></tr></table></figure></p>
+<p><code>tail -f /var/log/messages</code>，我发现有以下的包在slave1是可以顺利通过防火墙的，但在slave2被拒绝了:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Feb 11 08:18:03 kubernetes-slave-2 kernel: IN=eth0 OUT= MAC=5a:e9:b7:d6:88:8d:30:7c:5e:91:9c:30:08:00 SRC=&lt;ip of master&gt; DST=&lt;ip of slave2&gt; LEN=134 TOS=0x00 PREC=0x00 TTL=60 ID=16426 PROTO=UDP SPT=56731 DPT=8472 LEN=114</span><br><span class="line">Feb 11 08:18:04 kubernetes-slave-2 kernel: IN=eth0 OUT= MAC=5a:e9:b7:d6:88:8d:30:7c:5e:91:9c:30:08:00 SRC=&lt;ip of master&gt; DST=&lt;ip of slave2&gt; LEN=134 TOS=0x00 PREC=0x00 TTL=60 ID=16426 PROTO=UDP SPT=56731 DPT=8472 LEN=114</span><br><span class="line">Feb 11 08:18:05 kubernetes-slave-2 kernel: IN=eth0 OUT= MAC=5a:e9:b7:d6:88:8d:30:7c:5e:91:9c:30:08:00 SRC=&lt;ip of master&gt; DST=&lt;ip of slave2&gt; LEN=134 TOS=0x00 PREC=0x00 TTL=60 ID=16426 PROTO=UDP SPT=56731 DPT=8472 LEN=114</span><br></pre></td></tr></table></figure></p>
+<p>注意到8472端口，这个端口是vxlan用于广播数据报文用的端口，vxlan是flannel底层用于跨机器通信用的。我明明记得配置kubernetes机器的时候对这个端口开了白名单呀:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-1 ~]# iptables -L -n | grep 8472</span><br><span class="line">ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:8472 ctstate NEW</span><br><span class="line"></span><br><span class="line">[root@kubernetes-slave-2 ~]# iptables -L -n | grep 8472</span><br><span class="line">ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:8472 ctstate NEW</span><br></pre></td></tr></table></figure></p>
+<p>这个时候我终于发现问题了，当时给8472开的白名单误写成了tcp，然而vxlan使用的是udp！！！<br>最后，两条命令解决问题，终于一切都正常了！<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=8472/udp --permanent</span><br><span class="line">systemctl restart firewalld</span><br></pre></td></tr></table></figure></p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>一个非常小的错误，导致这一通排查花了我一整天的时间，还是应该多仔细啊。在排查的过程中，其实我也走了一些弯路，刚开始我就确定是网络配置的问题，step2和step3其实都是没有必要的。如果刚开始就直接在iptables中打日志，就可以更快的发现这个问题。因为事后证明新发现的症状对于最后的debug并没有太大的帮助。</p>
+
+        </div>
+        <footer class="article-footer">
+            
+
+
+
+    <a data-url="http://xidui.github.io/2017/02/09/记一次kubernetes网络调试/" data-id="cjq2vr2gs001d6cujuhevftr8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+        </footer>
+    </div>
+</article>
+
+    <section id="comments">
+    
+        
+    <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    </div>
+
+    
+    </section>
+
+
+
+                        </div>
+                    </section>
+                    <aside id="sidebar">
+    <a class="sidebar-toggle" title="Expand Sidebar"><i class="toggle icon"></i></a>
+    <div class="sidebar-top">
+        <p>follow:</p>
+        <ul class="social-links">
+            
+                
+                <li>
+                    <a class="social-tooltip" title="twitter" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-twitter"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="facebook" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-facebook"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="google-plus" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-google-plus"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="github" href="https://github.com/ppoffice/hexo-theme-hueman" target="_blank" rel="noopener">
+                        <i class="icon fa fa-github"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="weibo" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-weibo"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="rss" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-rss"></i>
+                    </a>
+                </li>
+                
+            
+        </ul>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+    
+        <a href="/2017/02/06/在kubernetes中配置skydns/" id="article-nav-older" class="article-nav-link-wrap">
+        <strong class="article-nav-caption">older</strong>
+        <p class="article-nav-title">在kubernetes中配置skydns</p>
+        <i class="icon fa fa-chevron-left" id="icon-chevron-left"></i>
+        </a>
+    
+</nav>
+
+    
+    <div class="widgets-container">
+        
+            
+                
+
+            
+                
+    <div class="widget-wrap">
+        <h3 class="widget-title">recents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/02/09/记一次kubernetes网络调试/" class="thumbnail">
+    
+    
+        <span style="background-image:url(/images/kubernetes-service.png)" alt="记一次kubernetes网络调试" class="thumbnail-image"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/02/09/记一次kubernetes网络调试/" class="title">记一次kubernetes网络调试</a></p>
+                            <p class="item-date"><time datetime="2017-02-09T23:39:23.000Z" itemprop="datePublished">2017-02-09</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/02/06/在kubernetes中配置skydns/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/02/06/在kubernetes中配置skydns/" class="title">在kubernetes中配置skydns</a></p>
+                            <p class="item-date"><time datetime="2017-02-06T17:08:03.000Z" itemprop="datePublished">2017-02-06</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="title">手动在kubernetes集群中添加minon</a></p>
+                            <p class="item-date"><time datetime="2017-01-04T02:30:30.000Z" itemprop="datePublished">2017-01-03</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/07/13/nginx——map性能测试/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2016/07/13/nginx——map性能测试/" class="title">nginx中map模块的使用及性能测试</a></p>
+                            <p class="item-date"><time datetime="2016-07-13T05:30:58.000Z" itemprop="datePublished">2016-07-13</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="thumbnail">
+    
+    
+        <span style="background-image:url(/images/QQ20160530-0@2x.png)" alt="在linode服务器上安装kubernetes集群" class="thumbnail-image"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="title">在linode服务器上安装kubernetes集群</a></p>
+                            <p class="item-date"><time datetime="2016-05-30T18:32:59.000Z" itemprop="datePublished">2016-05-30</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+            
+                
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">January 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">August 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">May 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">April 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">March 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/11/">November 2014</a><span class="archive-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">tags</h3>
+        <div class="widget">
+            <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/abtest/">abtest</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/angularjs/">angularjs</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ansible/">ansible</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/asyncio/">asyncio</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/c/">c++</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/coroutine/">coroutine</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/dns/">dns</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flannel/">flannel</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flask/">flask</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gcj/">gcj</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gevent/">gevent</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/go/">go</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/http/">http</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iptables/">iptables</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/jquery/">jquery</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/js/">js</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kubernetes/">kubernetes</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/linux/">linux</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/markdown/">markdown</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/matlab/">matlab</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mongodb/">mongodb</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mysql/">mysql</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nginx/">nginx</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/node-js/">node.js</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nodejs/">nodejs</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a><span class="tag-list-count">8</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/shell/">shell</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/threadpool/">threadpool</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/tornado/">tornado</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/unittest/">unittest</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步队列/">异步队列</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据挖掘/">数据挖掘</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/机器学习/">机器学习</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/爬虫/">爬虫</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/翻译/">翻译</a><span class="tag-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-float">
+        <h3 class="widget-title">tag cloud</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/abtest/" style="font-size: 10px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 10px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 10px;">ansible</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/asyncio/" style="font-size: 11.67px;">asyncio</a> <a href="/tags/c/" style="font-size: 18.33px;">c++</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 10px;">dns</a> <a href="/tags/flannel/" style="font-size: 10px;">flannel</a> <a href="/tags/flask/" style="font-size: 10px;">flask</a> <a href="/tags/gcj/" style="font-size: 11.67px;">gcj</a> <a href="/tags/gevent/" style="font-size: 10px;">gevent</a> <a href="/tags/go/" style="font-size: 10px;">go</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/iptables/" style="font-size: 10px;">iptables</a> <a href="/tags/jquery/" style="font-size: 10px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 15px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/markdown/" style="font-size: 10px;">markdown</a> <a href="/tags/matlab/" style="font-size: 11.67px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 15px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 10px;">mysql</a> <a href="/tags/nginx/" style="font-size: 10px;">nginx</a> <a href="/tags/node-js/" style="font-size: 10px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 18.33px;">nodejs</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/shell/" style="font-size: 10px;">shell</a> <a href="/tags/threadpool/" style="font-size: 11.67px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 10px;">unittest</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/并发/" style="font-size: 15px;">并发</a> <a href="/tags/异步队列/" style="font-size: 10px;">异步队列</a> <a href="/tags/数据挖掘/" style="font-size: 10px;">数据挖掘</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/机器学习/" style="font-size: 10px;">机器学习</a> <a href="/tags/爬虫/" style="font-size: 10px;">爬虫</a> <a href="/tags/算法/" style="font-size: 16.67px;">算法</a> <a href="/tags/翻译/" style="font-size: 10px;">翻译</a>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">links</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://hexo.io">Hexo</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+            
+        
+    </div>
+</aside>
+
+                </div>
+            </div>
+        </div>
+        <footer id="footer">
+    <div class="container">
+        <div class="container-inner">
+            <a id="back-to-top" href="javascript:;"><i class="icon fa fa-angle-up"></i></a>
+            <div class="credit">
+                <h1 class="logo-wrap">
+                    <a href="/" class="logo"></a>
+                </h1>
+                <p>&copy; 2018 xidui</p>
+                <p>Powered by <a href="//hexo.io/" target="_blank">Hexo</a>. Theme by <a href="//github.com/ppoffice" target="_blank">PPOffice</a></p>
+            </div>
+            <div class="footer-plugins">
+              
+    
+
+
+            </div>
+        </div>
+    </div>
+</footer>
+
+        
+    
+    <script>
+    var disqus_shortname = 'hexo-theme-hueman';
+    
+    
+    var disqus_url = 'http://xidui.github.io/2017/02/09/记一次kubernetes网络调试/';
+    
+    (function() {
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+        <script src="/libs/justified-gallery/jquery.justifiedGallery.min.js"></script>
+    
+    
+
+
+
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>

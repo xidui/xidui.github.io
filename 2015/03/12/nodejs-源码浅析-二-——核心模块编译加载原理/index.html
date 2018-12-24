@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+
+    
+
+    
+    <title>nodejs 源码浅析(二)——核心模块编译加载原理 | xidui is very lazy</title>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+        <meta name="keywords" content="nodejs">
+    
+    <meta name="description" content="模块加载原理nodejs中，一共有四种类型的模块，C++核心模块（内建模块），js核心模块，C++用户模块，js用户模块。这部分来分别探讨下这些模块的编译加载流程。问题：1.require、exports、module这些对象用户没有声明过，但用户还是可以直接用require(),exports，这是为什么？2.引入别的模块的流程如何？  1.js核心模块加载原理每个js模块都是一个文件，一个文件">
+<meta name="keywords" content="nodejs">
+<meta property="og:type" content="article">
+<meta property="og:title" content="nodejs 源码浅析(二)——核心模块编译加载原理">
+<meta property="og:url" content="http://xidui.github.io/2015/03/12/nodejs-源码浅析-二-——核心模块编译加载原理/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="模块加载原理nodejs中，一共有四种类型的模块，C++核心模块（内建模块），js核心模块，C++用户模块，js用户模块。这部分来分别探讨下这些模块的编译加载流程。问题：1.require、exports、module这些对象用户没有声明过，但用户还是可以直接用require(),exports，这是为什么？2.引入别的模块的流程如何？  1.js核心模块加载原理每个js模块都是一个文件，一个文件">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http://xidui.github.io/images/E5AF647D-4F49-4E37-A394-0753784ED001.png">
+<meta property="og:updated_time" content="2016-03-06T08:28:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="nodejs 源码浅析(二)——核心模块编译加载原理">
+<meta name="twitter:description" content="模块加载原理nodejs中，一共有四种类型的模块，C++核心模块（内建模块），js核心模块，C++用户模块，js用户模块。这部分来分别探讨下这些模块的编译加载流程。问题：1.require、exports、module这些对象用户没有声明过，但用户还是可以直接用require(),exports，这是为什么？2.引入别的模块的流程如何？  1.js核心模块加载原理每个js模块都是一个文件，一个文件">
+<meta name="twitter:image" content="http://xidui.github.io/images/E5AF647D-4F49-4E37-A394-0753784ED001.png">
+    
+
+    
+        <link rel="alternate" href="/" title="xidui is very lazy" type="application/atom+xml">
+    
+
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/titillium-web/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/3.3.1/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+        <link rel="stylesheet" href="/libs/justified-gallery/justifiedGallery.min.css">
+    
+    
+    
+
+
+</head>
+</html>
+<body>
+    <div id="wrap">
+        <header id="header">
+    <div id="header-outer" class="outer">
+        <div class="container">
+            <div class="container-inner">
+                <div id="header-title">
+                    <h1 class="logo-wrap">
+                        <a href="/" class="logo"></a>
+                    </h1>
+                    
+                </div>
+                <div id="header-inner" class="nav-container">
+                    <a id="main-nav-toggle" class="nav-icon fa fa-bars"></a>
+                    <div class="nav-container-inner">
+                        <ul id="main-nav">
+                            
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/">Home</a>
+                                </li>
+                            
+                                        
+                                    
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/about/index.html">About</a>
+                                </li>
+                            
+                        </ul>
+                        <nav id="sub-nav">
+                            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+        <div class="container">
+            <div class="main-body container-inner">
+                <div class="main-body-inner">
+                    <section id="main">
+                        <div class="main-body-header">
+    <h1 class="header">
+    
+    uncategorized
+    </h1>
+</div>
+
+                        <div class="main-body-content">
+                            <article id="post-nodejs-源码浅析-二-——核心模块编译加载原理" class="article article-single article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+        nodejs 源码浅析(二)——核心模块编译加载原理
+        </h1>
+    
+
+            </header>
+        
+        
+            <div class="article-meta">
+                
+    <div class="article-date">
+        <a href="/2015/03/12/nodejs-源码浅析-二-——核心模块编译加载原理/" class="article-date">
+            <time datetime="2015-03-12T22:25:24.000Z" itemprop="datePublished">2015-03-12</time>
+        </a>
+    </div>
+
+		
+
+                
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/nodejs/">nodejs</a>
+    </div>
+
+            </div>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+            <h2 id="模块加载原理"><a href="#模块加载原理" class="headerlink" title="模块加载原理"></a>模块加载原理</h2><p>nodejs中，一共有四种类型的模块，C++核心模块（内建模块），js核心模块，C++用户模块，js用户模块。这部分来分别探讨下这些模块的编译加载流程。<br>问题：<br>1.require、exports、module这些对象用户没有声明过，但用户还是可以直接用require(),exports，这是为什么？<br>2.引入别的模块的流程如何？</p>
+<hr>
+<h3 id="1-js核心模块加载原理"><a href="#1-js核心模块加载原理" class="headerlink" title="1.js核心模块加载原理"></a>1.js核心模块加载原理</h3><p>每个js模块都是一个文件，一个文件一个模块，在js代码中就是一个Module对象。至于那些整个包构成的模块，也是有一个对外的文件，如果没有指定默认是index.js作为出口文件，该文件内部又会使用require去包含其它的文件。</p>
+<a id="more"></a>
+<p>核心模块加载的大致流程如下：<br><img src="/images/E5AF647D-4F49-4E37-A394-0753784ED001.png"><br>其实加载js核心模块和用户模块都会走到_load()接口，分水岭在于js的核心模块在node二进制文件编译的时候使用js2c.py编译进了./out/Release/obj/gen/node_javascript.h这个文件中，在_load函数中它先去判断要加载的模块在NativeModule中存不存在，如果存在，直接调用，如果不存在，那就是js用户模块，走另一个逻辑分支。现在我们探讨的是js核心模块，直接逻辑就进入了NativeModule。</p>
+<p>在NativeModule的require中有一个细节，他并不是每次都重新加载，第一次加载相应的模块以后，便存在缓存中，下次直接从缓存中取，以加快效率：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> cached = NativeModule.getCached(id);</span><br><span class="line"><span class="keyword">if</span> (cached) &#123;</span><br><span class="line">    <span class="keyword">return</span> cached.exports;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>cache()接口的作用就是把第一次加载的放进缓存，它是一个对象函数不是类的静态函数：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">NativeModule.prototype.cache = <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    NativeModule._cache[<span class="keyword">this</span>.id] = <span class="keyword">this</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>compile函数虽然很短，但值得详细推敲一下：<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">NativeModule.wrap = <span class="function"><span class="keyword">function</span>(<span class="params">script</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> NativeModule.wrapper[<span class="number">0</span>] + script + NativeModule.wrapper[<span class="number">1</span>];</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">NativeModule.wrapper = [</span><br><span class="line">    <span class="string">'(function (exports, require, module, __filename, __dirname) &#123; '</span>,</span><br><span class="line">    <span class="string">'\n&#125;);'</span></span><br><span class="line">];</span><br><span class="line"></span><br><span class="line">NativeModule.prototype.compile = <span class="function"><span class="keyword">function</span>(<span class="params"></span>) </span>&#123;</span><br><span class="line">    <span class="keyword">var</span> source = NativeModule.getSource(<span class="keyword">this</span>.id);</span><br><span class="line">    source = NativeModule.wrap(source);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> fn = runInThisContext(source, &#123; <span class="attr">filename</span>: <span class="keyword">this</span>.filename &#125;);</span><br><span class="line">    fn(<span class="keyword">this</span>.exports, NativeModule.require, <span class="keyword">this</span>, <span class="keyword">this</span>.filename);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">this</span>.loaded = <span class="literal">true</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>得到要加载的模块的源码后，nodejs执行了一个wrap操作，这个wrap把所有代码外部包了一层function。而exports、require等就是这个函数的形参。这也就解释了为啥用户感觉require，exports用户没有声明就能用。执行完了runInThisContext后，相当于是把这个模块声明了。fn()则是传入参数，执行构造函数，生成对象，至此这个模块就已经加载完成可以使用了。</p>
+<p>值得注意的一点是，这里传入的require是NativeModule.require，后面我们会发现，加载js用户模块的时候传入的是Module.prototype.require。这是相当合理的，因为在引入关系上，js核心模块只有js用户模块才能引入，这个方向不能反，当然js用户模块也能引入js用户模块。所以如果后者传入NativeModule.require也是不合理的。</p>
+<p>现在对于runInThisContext()接口我们的了解仅限于js层面，那么它究竟是怎么被传入v8解析并执行的呢：<br><img src="/images/7B2D4466-484B-4962-AEE6-9E0B11A8EB48.png"></p>
+<p>从js到C++，我们可以看到，js层调用了process.binding，获取了contextify模块（C++核心模块）的ContextifyScript对象，执行这个对象的RunInThisContext方法。<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> ContextifyScript = process.binding(<span class="string">'contextify'</span>).ContextifyScript;</span><br><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">runInThisContext</span>(<span class="params">code, options</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">var</span> script = <span class="keyword">new</span> ContextifyScript(code, options);</span><br><span class="line">    <span class="keyword">return</span> script.runInThisContext();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在EvalMachine里，如其名就是执行js代码了，主要部分如下：<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">ContextifyScript* wrapped_script = Unwrap&lt;ContextifyScript&gt;(args.Holder());</span><br><span class="line">Local&lt;UnboundScript&gt; unbound_script =</span><br><span class="line">    PersistentToLocal(env-&gt;isolate(), wrapped_script-&gt;script_);</span><br><span class="line">Local&lt;Script&gt; script = unbound_script-&gt;BindToCurrentContext();</span><br><span class="line"></span><br><span class="line">Local&lt;Value&gt; result;</span><br><span class="line"><span class="keyword">if</span> (timeout != <span class="number">-1</span>) &#123;</span><br><span class="line">    <span class="function">Watchdog <span class="title">wd</span><span class="params">(env, timeout)</span></span>;</span><br><span class="line">    result = script-&gt;Run();</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    result = script-&gt;Run();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>至于这些script是调用哪些接口生成的，比如PersistentToLocal、BindToCurrentContext具体做了哪些工作，则需要阅读v8的api文档或者v8的源码了，不在本文的范围之内，日后会再介绍。</p>
+<hr>
+<h3 id="2-c-核心模块加载原理"><a href="#2-c-核心模块加载原理" class="headerlink" title="2.c++核心模块加载原理"></a>2.c++核心模块加载原理</h3><p>上一节已经有提到了，C++核心模块的就是通过process.binding(‘xxx’)导出的。<br><img src="/images/18E133C0-97F7-4825-9A98-2BB968B41499.png"><br>而这个nm_context_register_fun()则是在src/xxx.cc中通过NODE_MODULE_CONTEXT_AWARE_BUILTIN注册的，以node_buffer.cc为例：<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NODE_MODULE_CONTEXT_AWARE_BUILTIN(buffer, node::Buffer::Initialize)</span><br></pre></td></tr></table></figure></p>
+<p>node_module的结构如下（在node.h中）：<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">node_module</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> nm_version;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> nm_flags;</span><br><span class="line">    <span class="keyword">void</span>* nm_dso_handle;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span>* nm_filename;</span><br><span class="line">    node::addon_register_func nm_register_func;</span><br><span class="line">    node::addon_context_register_func nm_context_register_func;</span><br><span class="line">    <span class="keyword">const</span> <span class="keyword">char</span>* nm_modname;</span><br><span class="line">    <span class="keyword">void</span>* nm_priv;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">node_module</span>* <span class="title">nm_link</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></p>
+<p>有如下疑问：nm_register_func和nm_context_register_func在功能上有什么区别，通过在项目中寻找这两个词，发现<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NODE_MODULE(modname, regfunc)</span><br></pre></td></tr></table></figure></p>
+<p>这个宏用于注册nm_register_func，<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NODE_MODULE_CONTEXT_AWARE_BUILTIN(modname, regfunc)</span><br></pre></td></tr></table></figure></p>
+<p>这个宏用于注册nm_context_register_func，<br>src下的内建模块使用的都是后者来注册的，node项目中没有找到NODE_MODULE注册模块的地方。<br>在node.cc对nm_register_func以及nm_context_register_func的使用上也基本没差，如果一个没有就调用另外一个，仅仅在Binding接口中有区别：<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">exports = Object::New(env-&gt;isolate());</span><br><span class="line"><span class="comment">// Internal bindings don't have a "module" object, only exports.</span></span><br><span class="line">assert(mod-&gt;nm_register_func == <span class="literal">NULL</span>);</span><br><span class="line">assert(mod-&gt;nm_context_register_func != <span class="literal">NULL</span>);</span><br><span class="line">Local&lt;Value&gt; unused = Undefined(env-&gt;isolate());</span><br><span class="line">mod-&gt;nm_context_register_func(exports, unused,</span><br><span class="line">    env-&gt;context(), mod-&gt;nm_priv);</span><br><span class="line">cache-&gt;Set(<span class="keyword">module</span>, exports);</span><br></pre></td></tr></table></figure></p>
+<p>只能猜测process.binding所引入的模块（C++核心模块）要使用nm_context_register_func，另外一个得为NULL。要是想扩展C++核心模块的开发者要注意这点了，不然无法正常引入，是个坑啊。</p>
+<p>node_module在组织上是通过链表的形式，有新的模块来了，就会把它放到链表的头部，nm_link就是指向下一个模块的指针。<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> node_module* modpending;</span><br><span class="line"><span class="keyword">static</span> node_module* modlist_builtin;</span><br><span class="line"><span class="keyword">static</span> node_module* modlist_linked;</span><br><span class="line"><span class="keyword">static</span> node_module* modlist_addon;</span><br></pre></td></tr></table></figure></p>
+<p>这四个静态变量分别表示四个链表，内建模块在加载时会被放入modlist_builtin，C++用户模块会被放入modlist_addon，如果src下的文件不是内建模块，在启动时他会被放入modlist_linked。<br>更具体地：<br><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NODE_MODULE(modname, regfunc)                                 \</span></span><br><span class="line">    NODE_MODULE_X(modname, regfunc, <span class="literal">NULL</span>, <span class="number">0</span>)</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> NODE_MODULE_CONTEXT_AWARE(modname, regfunc)                   \</span></span><br><span class="line">    NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, <span class="literal">NULL</span>, <span class="number">0</span>)</span><br></pre></td></tr></table></figure></p>
+<p>使用上面的宏注册的C++模块，会被放入modlist_linked；使用下面的宏注册的C++模块会被放入modlist_builtin。<br>至于modpending，笔者还不是很懂，它和modlist_addon是一对。加载C++用户模块的时候它会放入modpending，然后再是modlist_addon。但是它是在哪里放入modpending的，还不清楚，日后懂了会更新。</p>
+<h4 id="C-用户模块和js用户模块的加载过程会放在下篇文章中讲解。"><a href="#C-用户模块和js用户模块的加载过程会放在下篇文章中讲解。" class="headerlink" title="C++用户模块和js用户模块的加载过程会放在下篇文章中讲解。"></a>C++用户模块和js用户模块的加载过程会放在下篇文章中讲解。</h4>
+        </div>
+        <footer class="article-footer">
+            
+
+
+
+    <a data-url="http://xidui.github.io/2015/03/12/nodejs-源码浅析-二-——核心模块编译加载原理/" data-id="cjq2vr2gl000p6cujnqxab5qo" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+        </footer>
+    </div>
+</article>
+
+    <section id="comments">
+    
+        
+    <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    </div>
+
+    
+    </section>
+
+
+
+                        </div>
+                    </section>
+                    <aside id="sidebar">
+    <a class="sidebar-toggle" title="Expand Sidebar"><i class="toggle icon"></i></a>
+    <div class="sidebar-top">
+        <p>follow:</p>
+        <ul class="social-links">
+            
+                
+                <li>
+                    <a class="social-tooltip" title="twitter" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-twitter"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="facebook" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-facebook"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="google-plus" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-google-plus"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="github" href="https://github.com/ppoffice/hexo-theme-hueman" target="_blank" rel="noopener">
+                        <i class="icon fa fa-github"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="weibo" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-weibo"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="rss" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-rss"></i>
+                    </a>
+                </li>
+                
+            
+        </ul>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/2015/03/19/nodejs-源码浅析-三-——用户模块编译加载原理/" id="article-nav-newer" class="article-nav-link-wrap">
+        <strong class="article-nav-caption">newer</strong>
+        <p class="article-nav-title">
+        
+            nodejs 源码浅析(三)——用户模块编译加载原理
+        
+        </p>
+        <i class="icon fa fa-chevron-right" id="icon-chevron-right"></i>
+    </a>
+    
+    
+        <a href="/2015/03/05/nodejs-源码浅析-一进程启动过程/" id="article-nav-older" class="article-nav-link-wrap">
+        <strong class="article-nav-caption">older</strong>
+        <p class="article-nav-title">nodejs 源码浅析(一)——进程启动过程</p>
+        <i class="icon fa fa-chevron-left" id="icon-chevron-left"></i>
+        </a>
+    
+</nav>
+
+    
+    <div class="widgets-container">
+        
+            
+                
+
+            
+                
+    <div class="widget-wrap">
+        <h3 class="widget-title">recents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/02/09/记一次kubernetes网络调试/" class="thumbnail">
+    
+    
+        <span style="background-image:url(/images/kubernetes-service.png)" alt="记一次kubernetes网络调试" class="thumbnail-image"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/02/09/记一次kubernetes网络调试/" class="title">记一次kubernetes网络调试</a></p>
+                            <p class="item-date"><time datetime="2017-02-09T23:39:23.000Z" itemprop="datePublished">2017-02-09</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/02/06/在kubernetes中配置skydns/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/02/06/在kubernetes中配置skydns/" class="title">在kubernetes中配置skydns</a></p>
+                            <p class="item-date"><time datetime="2017-02-06T17:08:03.000Z" itemprop="datePublished">2017-02-06</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="title">手动在kubernetes集群中添加minon</a></p>
+                            <p class="item-date"><time datetime="2017-01-04T02:30:30.000Z" itemprop="datePublished">2017-01-03</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/07/13/nginx——map性能测试/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2016/07/13/nginx——map性能测试/" class="title">nginx中map模块的使用及性能测试</a></p>
+                            <p class="item-date"><time datetime="2016-07-13T05:30:58.000Z" itemprop="datePublished">2016-07-13</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="thumbnail">
+    
+    
+        <span style="background-image:url(/images/QQ20160530-0@2x.png)" alt="在linode服务器上安装kubernetes集群" class="thumbnail-image"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="title">在linode服务器上安装kubernetes集群</a></p>
+                            <p class="item-date"><time datetime="2016-05-30T18:32:59.000Z" itemprop="datePublished">2016-05-30</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+            
+                
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">January 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">August 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">May 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">April 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">March 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/11/">November 2014</a><span class="archive-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">tags</h3>
+        <div class="widget">
+            <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/abtest/">abtest</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/angularjs/">angularjs</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ansible/">ansible</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/asyncio/">asyncio</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/c/">c++</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/coroutine/">coroutine</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/dns/">dns</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flannel/">flannel</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flask/">flask</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gcj/">gcj</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gevent/">gevent</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/go/">go</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/http/">http</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iptables/">iptables</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/jquery/">jquery</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/js/">js</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kubernetes/">kubernetes</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/linux/">linux</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/markdown/">markdown</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/matlab/">matlab</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mongodb/">mongodb</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mysql/">mysql</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nginx/">nginx</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/node-js/">node.js</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nodejs/">nodejs</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a><span class="tag-list-count">8</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/shell/">shell</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/threadpool/">threadpool</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/tornado/">tornado</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/unittest/">unittest</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步队列/">异步队列</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据挖掘/">数据挖掘</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/机器学习/">机器学习</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/爬虫/">爬虫</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/翻译/">翻译</a><span class="tag-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-float">
+        <h3 class="widget-title">tag cloud</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/abtest/" style="font-size: 10px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 10px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 10px;">ansible</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/asyncio/" style="font-size: 11.67px;">asyncio</a> <a href="/tags/c/" style="font-size: 18.33px;">c++</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 10px;">dns</a> <a href="/tags/flannel/" style="font-size: 10px;">flannel</a> <a href="/tags/flask/" style="font-size: 10px;">flask</a> <a href="/tags/gcj/" style="font-size: 11.67px;">gcj</a> <a href="/tags/gevent/" style="font-size: 10px;">gevent</a> <a href="/tags/go/" style="font-size: 10px;">go</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/iptables/" style="font-size: 10px;">iptables</a> <a href="/tags/jquery/" style="font-size: 10px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 15px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/markdown/" style="font-size: 10px;">markdown</a> <a href="/tags/matlab/" style="font-size: 11.67px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 15px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 10px;">mysql</a> <a href="/tags/nginx/" style="font-size: 10px;">nginx</a> <a href="/tags/node-js/" style="font-size: 10px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 18.33px;">nodejs</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/shell/" style="font-size: 10px;">shell</a> <a href="/tags/threadpool/" style="font-size: 11.67px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 10px;">unittest</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/并发/" style="font-size: 15px;">并发</a> <a href="/tags/异步队列/" style="font-size: 10px;">异步队列</a> <a href="/tags/数据挖掘/" style="font-size: 10px;">数据挖掘</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/机器学习/" style="font-size: 10px;">机器学习</a> <a href="/tags/爬虫/" style="font-size: 10px;">爬虫</a> <a href="/tags/算法/" style="font-size: 16.67px;">算法</a> <a href="/tags/翻译/" style="font-size: 10px;">翻译</a>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">links</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://hexo.io">Hexo</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+            
+        
+    </div>
+</aside>
+
+                </div>
+            </div>
+        </div>
+        <footer id="footer">
+    <div class="container">
+        <div class="container-inner">
+            <a id="back-to-top" href="javascript:;"><i class="icon fa fa-angle-up"></i></a>
+            <div class="credit">
+                <h1 class="logo-wrap">
+                    <a href="/" class="logo"></a>
+                </h1>
+                <p>&copy; 2018 xidui</p>
+                <p>Powered by <a href="//hexo.io/" target="_blank">Hexo</a>. Theme by <a href="//github.com/ppoffice" target="_blank">PPOffice</a></p>
+            </div>
+            <div class="footer-plugins">
+              
+    
+
+
+            </div>
+        </div>
+    </div>
+</footer>
+
+        
+    
+    <script>
+    var disqus_shortname = 'hexo-theme-hueman';
+    
+    
+    var disqus_url = 'http://xidui.github.io/2015/03/12/nodejs-源码浅析-二-——核心模块编译加载原理/';
+    
+    (function() {
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+        <script src="/libs/justified-gallery/jquery.justifiedGallery.min.js"></script>
+    
+    
+
+
+
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>

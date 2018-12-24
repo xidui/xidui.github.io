@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+
+    
+
+    
+    <title>Go语言学习笔记 | xidui is very lazy</title>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+        <meta name="keywords" content="go">
+    
+    <meta name="description" content="背景这两年go语言比较火，尤其是在服务器并发方面表现很好。一直想学一下，但是拖到现在。最近正好有这个机会，把go语言算是入了个门吧。">
+<meta name="keywords" content="go">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go语言学习笔记">
+<meta property="og:url" content="http://xidui.github.io/2016/03/06/Go语言学习笔记/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="背景这两年go语言比较火，尤其是在服务器并发方面表现很好。一直想学一下，但是拖到现在。最近正好有这个机会，把go语言算是入了个门吧。">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2016-03-06T13:04:09.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Go语言学习笔记">
+<meta name="twitter:description" content="背景这两年go语言比较火，尤其是在服务器并发方面表现很好。一直想学一下，但是拖到现在。最近正好有这个机会，把go语言算是入了个门吧。">
+    
+
+    
+        <link rel="alternate" href="/" title="xidui is very lazy" type="application/atom+xml">
+    
+
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/titillium-web/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/3.3.1/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+        <link rel="stylesheet" href="/libs/justified-gallery/justifiedGallery.min.css">
+    
+    
+    
+
+
+</head>
+</html>
+<body>
+    <div id="wrap">
+        <header id="header">
+    <div id="header-outer" class="outer">
+        <div class="container">
+            <div class="container-inner">
+                <div id="header-title">
+                    <h1 class="logo-wrap">
+                        <a href="/" class="logo"></a>
+                    </h1>
+                    
+                </div>
+                <div id="header-inner" class="nav-container">
+                    <a id="main-nav-toggle" class="nav-icon fa fa-bars"></a>
+                    <div class="nav-container-inner">
+                        <ul id="main-nav">
+                            
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/">Home</a>
+                                </li>
+                            
+                                        
+                                    
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/about/index.html">About</a>
+                                </li>
+                            
+                        </ul>
+                        <nav id="sub-nav">
+                            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+        <div class="container">
+            <div class="main-body container-inner">
+                <div class="main-body-inner">
+                    <section id="main">
+                        <div class="main-body-header">
+    <h1 class="header">
+    
+    uncategorized
+    </h1>
+</div>
+
+                        <div class="main-body-content">
+                            <article id="post-Go语言学习笔记" class="article article-single article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+        Go语言学习笔记
+        </h1>
+    
+
+            </header>
+        
+        
+            <div class="article-meta">
+                
+    <div class="article-date">
+        <a href="/2016/03/06/Go语言学习笔记/" class="article-date">
+            <time datetime="2016-03-06T20:56:48.000Z" itemprop="datePublished">2016-03-06</time>
+        </a>
+    </div>
+
+		
+
+                
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/go/">go</a>
+    </div>
+
+            </div>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+            <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>这两年go语言比较火，尤其是在服务器并发方面表现很好。一直想学一下，但是拖到现在。最近正好有这个机会，把go语言算是入了个门吧。</p>
+<a id="more"></a>
+<h3 id="概括"><a href="#概括" class="headerlink" title="概括"></a>概括</h3><p>学了两周，总体感觉如下：</p>
+<ol>
+<li>和C++在一些语法有点像，但少了很多东西，比如说分号，for循环以及if语句的括号(在go语言中是可有可无的)</li>
+<li>没有了引用类型，都使用指针替代，指针获取变量也是采用点分的形式</li>
+<li>强类型语言，类型有点强到吐血，比C++还强</li>
+<li>不支持函数重载、函数默认参数</li>
+<li>编译限制太多，有未被使用的变量或者导入了未使用的库，都会编译失败</li>
+<li>简化了异常处理，只有<code>panic</code>和<code>defer</code></li>
+<li>缩进，默认的8格缩进真是挺难看的</li>
+<li>go语言的资源在天朝是被墙着的</li>
+</ol>
+<h3 id="一些坑"><a href="#一些坑" class="headerlink" title="一些坑"></a>一些坑</h3><p>这里记录的一些坑，都是我在使用的过程中遇到过的已经解决的或者是没有完美解决的。</p>
+<h4 id="1-array类型与slice类型"><a href="#1-array类型与slice类型" class="headerlink" title="1.array类型与slice类型"></a>1.array类型与slice类型</h4><p>使用一门语言的时候数据结构肯定是一个必修课题，其中的数组又是所有语言中最基础的数据结构。<br>对于以下这两个类型<code>[]int</code>，<code>[3]int</code>起初我以为是一样的，于是写了以下这样的代码:<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// package, imports 略</span></span><br><span class="line"><span class="comment">// error msg: cannot use [3]int literal (type [3]int) as type []int in return argument</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">return_array_but_slice_needed</span><span class="params">()</span> []<span class="title">int</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> [<span class="number">3</span>]<span class="keyword">int</span>&#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>结果可想而知，编译错误，原来在go中数组有两种(准确的说是无穷多种，因为<code>[2]int</code>和<code>[3]int</code>也是不同的类型)，分别是array和slice。可以从C++的角度去理解：</p>
+<ol>
+<li>Go中的<code>var array [3]int</code> 相当于是C++中的<code>int array[3]</code>，数组的长度是定长的，不能扩展，但能修改数组中的值。</li>
+<li>Go中的<code>var slice []int</code> 相当于是C++中的<code>std::vector&lt;int&gt; slice</code>，数组长度可伸缩，可修改，可索引。</li>
+</ol>
+<p>值得一提的是slice的内存分配和C++的vector也很相似，它有长度和容量两个概念，容量总是大于长度的。对于slice作append操作时，如果还有剩余容量，则直接附加，否则重新开辟一块长度是2倍的内存(如果slice本身数据特别多，可能不到2倍)，把原来数据复制进去，再作附加操作。</p>
+<p>其实slice是一个包含了array指针的数据结构，还有长度，容量这两个属性。slice赋值给另外一个slice的时候，不同的仅仅是两个slice对象在内存中的位置，而它们指向的array是相同的，仔细体会一下下面这个例子就可以理解，注释中写得很明确。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span>&#123;</span><br><span class="line">    a := <span class="built_in">make</span>([]<span class="keyword">int</span>, <span class="number">3</span>, <span class="number">6</span>)</span><br><span class="line">    <span class="keyword">var</span> b = a                 <span class="comment">// 赋值，但a,b底层所指的数组是同一份，在堆中</span></span><br><span class="line"></span><br><span class="line">    b[<span class="number">0</span>] = <span class="number">1</span>                  <span class="comment">// 修改b中的值同时也会修改a中的值</span></span><br><span class="line">    fmt.Printf(<span class="string">"%p\n"</span>, &amp;a)    <span class="comment">// 0x820246000</span></span><br><span class="line">    fmt.Printf(<span class="string">"%p\n"</span>, &amp;b)    <span class="comment">// 0x820246020</span></span><br><span class="line">    fmt.Println(a)            <span class="comment">// [1 0 0]</span></span><br><span class="line">    fmt.Println(b)            <span class="comment">// [1 0 0]</span></span><br><span class="line"></span><br><span class="line">    b = <span class="built_in">append</span>(b, <span class="number">4</span>)          <span class="comment">// 把4填到剩下三个空格中的第一格，并把b的长度设为4</span></span><br><span class="line">    b[<span class="number">1</span>] = <span class="number">2</span></span><br><span class="line">    fmt.Printf(<span class="string">"%p\n"</span>, &amp;a)    <span class="comment">// 0x820246000</span></span><br><span class="line">    fmt.Printf(<span class="string">"%p\n"</span>, &amp;b)    <span class="comment">// 0x820246020</span></span><br><span class="line">    fmt.Println(a)            <span class="comment">// [1 2 0]  其实和b是同一份数据，因为a的长度还是3，所以只输出了3个</span></span><br><span class="line">    fmt.Println(b)            <span class="comment">// [1 2 0 4]</span></span><br><span class="line"></span><br><span class="line">    a = <span class="built_in">append</span>(a, <span class="number">5</span>)          <span class="comment">// a的长度变成4， 值填到三个空格中的第一格（会覆盖掉b中的第四个数字）</span></span><br><span class="line">    a = <span class="built_in">append</span>(a, <span class="number">6</span>)          <span class="comment">// a的长度变成5， 值填到剩下两个空格的第一格</span></span><br><span class="line">    a = <span class="built_in">append</span>(a, <span class="number">7</span>, <span class="number">8</span>)       <span class="comment">// 超过了a的容量，重新分配a，至此，a和b已经不会再互相影响</span></span><br><span class="line">    fmt.Printf(<span class="string">"%p\n"</span>, &amp;a)    <span class="comment">// 0x820246000  a对象中的array指针地址已变，指向了更长的数组，但a变量本身并不会更改位置</span></span><br><span class="line">    fmt.Printf(<span class="string">"%p\n"</span>, &amp;b)    <span class="comment">// 0x820246020</span></span><br><span class="line">    fmt.Println(a)            <span class="comment">// [1 2 0 5 6 7 8]</span></span><br><span class="line">    fmt.Println(b)            <span class="comment">// [1 2 0 5]</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> c = b[<span class="number">2</span>: <span class="number">6</span>]           <span class="comment">// b的第三个数字到第六个数字作为slice分配给c，b和c共享一段内存</span></span><br><span class="line">    fmt.Println(c)            <span class="comment">// [0 5 6 0]    虽然b没有显示这个6，因为b的长度没到那里，但这个6确实在那段内存，由c打印出来</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="2-安装外部依赖包"><a href="#2-安装外部依赖包" class="headerlink" title="2.安装外部依赖包"></a>2.安装外部依赖包</h4><p>在编译go的时候总是会被它严格的编译限制弄得很头疼，比如我在调试的时候需要<code>fmt</code>这个库来打印一些东西，有时会注释某个打印，此时又不得不注释<code>import &quot;fmt&quot;</code>，等到再打印的时候，又要把那个注释释放出来，很麻烦。stackoverflow上的<a href="http://stackoverflow.com/questions/19560334/how-to-disable-golang-unused-import-error" target="_blank" rel="noopener">这个链接</a>跟我是同样的烦恼。答案中推荐了<a href="https://godoc.org/golang.org/x/tools/cmd/goimports" target="_blank" rel="noopener">goimports</a>这样一个工具，编译的时候会自动去掉不需要的依赖，使用下来还觉得挺不错的，但安装的过程确实感觉稍微有点坑。</p>
+<p>官网说安装需要执行这样的命令:<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go get golang.org/x/tools/cmd/goimports</span><br></pre></td></tr></table></figure></p>
+<p>但是<a href="http://golang.org在中国是被墙了的，当然可以从中国的某些镜像下载，但是还需要手动改一些文件夹的名字，很麻烦。因为`go" target="_blank" rel="noopener">http://golang.org在中国是被墙了的，当然可以从中国的某些镜像下载，但是还需要手动改一些文件夹的名字，很麻烦。因为`go</a> get`命令，支持从官网的库中下载，也支持从github下载，所以我决定从github下载。<br>但不管我采用以下的哪种，都无法下载:<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">go get https://github.com/bradfitz/goimports.git</span><br><span class="line">go get git@github.com:bradfitz/goimports.git</span><br></pre></td></tr></table></figure></p>
+<p>一通乱试，终于成功了:<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go get github.com/bradfitz/goimports</span><br></pre></td></tr></table></figure></p>
+<p>在看了<code>GOPATH</code>目录的文件结构后我大概终于终于明白了这种个形式的意义，因为命令中的路径其实也表达了文件夹中的路径，不管是官网的命令还是最后我采用的命令，它会下载到对应的文件夹:<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 执行官网的命令，会下载到以下路径</span></span><br><span class="line"><span class="meta">$</span><span class="bash">GOPATH/golang.org/x/tools/cmd/goimports</span></span><br><span class="line"><span class="meta">#</span><span class="bash"> github下载会下载到以下路径</span></span><br><span class="line"><span class="meta">$</span><span class="bash">GOPATH/github.com/bradfitz/goimports</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="3-如何实现泛型"><a href="#3-如何实现泛型" class="headerlink" title="3.如何实现泛型"></a>3.如何实现泛型</h4><p>Go语言是强类型语言，简直强到不能再强，不能像javascript或者python那样随心所欲地传值，又不能像C++中那样做函数重载。所以如何实现一个泛型的接口在go语言中是一个较为麻烦的事情。<br>好在Go语言并没有赶尽杀绝，他还有<code>interface{}</code>这样一个类型的参数，可以接受所有类型的其它参数。只不过有这样参数的接口，如果需要对类型作判断并且执行相应的操作的话还需要<a href="https://godoc.org/reflect" target="_blank" rel="noopener"><code>reflect</code></a>库的帮助。这个库很强大，接口也有很多，有时间有精力的话推荐读一下它的源码。</p>
+<p>interface{}的泛型能力还是很强的，他可以接受所有类型的参数，刚开始我还小瞧了它，写出了这样的代码:<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// cannot use a (type []int) as type []interface &#123;&#125; in argument to array_of_interface</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">array_of_interface</span><span class="params">(ai []<span class="keyword">interface</span>&#123;&#125;)</span></span>&#123;</span><br><span class="line">    fmt.Println(ai)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>结果编译出错。其实参数不需要定义成slice，直接<code>i interface{}</code>就够了。如果在接口中需要判断类型，我推荐一个库的源码<code>encoding/json</code>，这个库就是go语言中对json数据的序列化反序列化操作，可想而知，它需要实现大量的泛型操作(也是采用了<code>reflect</code>库)，贴一点关键部分的代码：<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// newTypeEncoder constructs an encoderFunc for a type.</span></span><br><span class="line"><span class="comment">// The returned encoder only checks CanAddr when allowAddr is true.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newTypeEncoder</span><span class="params">(t reflect.Type, allowAddr <span class="keyword">bool</span>)</span> <span class="title">encoderFunc</span></span> &#123;</span><br><span class="line">	<span class="comment">// 一部分代码略去，有兴趣的读者可以直接去阅读源码</span></span><br><span class="line">	<span class="keyword">switch</span> t.Kind() &#123;</span><br><span class="line">	<span class="keyword">case</span> reflect.Bool:</span><br><span class="line">		<span class="keyword">return</span> boolEncoder</span><br><span class="line">	<span class="keyword">case</span> reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:</span><br><span class="line">		<span class="keyword">return</span> intEncoder</span><br><span class="line">	<span class="keyword">case</span> reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:</span><br><span class="line">		<span class="keyword">return</span> uintEncoder</span><br><span class="line">	<span class="keyword">case</span> reflect.Float32:</span><br><span class="line">		<span class="keyword">return</span> float32Encoder</span><br><span class="line">	<span class="keyword">case</span> reflect.Float64:</span><br><span class="line">		<span class="keyword">return</span> float64Encoder</span><br><span class="line">	<span class="keyword">case</span> reflect.String:</span><br><span class="line">		<span class="keyword">return</span> stringEncoder</span><br><span class="line">	<span class="keyword">case</span> reflect.Interface:</span><br><span class="line">		<span class="keyword">return</span> interfaceEncoder</span><br><span class="line">	<span class="keyword">case</span> reflect.Struct:</span><br><span class="line">		<span class="keyword">return</span> newStructEncoder(t)</span><br><span class="line">	<span class="keyword">case</span> reflect.Map:</span><br><span class="line">		<span class="keyword">return</span> newMapEncoder(t)</span><br><span class="line">	<span class="keyword">case</span> reflect.Slice:</span><br><span class="line">		<span class="keyword">return</span> newSliceEncoder(t)</span><br><span class="line">	<span class="keyword">case</span> reflect.Array:</span><br><span class="line">		<span class="keyword">return</span> newArrayEncoder(t)</span><br><span class="line">	<span class="keyword">case</span> reflect.Ptr:</span><br><span class="line">		<span class="keyword">return</span> newPtrEncoder(t)</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">return</span> unsupportedTypeEncoder</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="4-其它"><a href="#4-其它" class="headerlink" title="4.其它"></a>4.其它</h4><p>待补充:<br>nil之坑<br>pointer receiver VS value receiver</p>
+<h3 id="有用的链接"><a href="#有用的链接" class="headerlink" title="有用的链接"></a>有用的链接</h3><p>当然，官方文档是非常棒的，基本上所有的问题在<a href="https://golang.org/doc/" target="_blank" rel="noopener">官网文档</a>或者<a href="https://github.com/golang/go/wiki" target="_blank" rel="noopener">github项目的wiki</a>中都有多提到，如果提前能够把这里的一些注意事项以及best practise看完，会非常有帮助的。只是内容比较多，另外自己动手操作以后再看文档的效果会比在还没有足够了解的情况下看文档好很多。</p>
+<p>下面这些链接是我在学习过程中个人觉得挺有帮助的一些问答或博客，也一起分享出来吧。</p>
+<ol>
+<li><a href="https://segmentfault.com/q/1010000003505053" target="_blank" rel="noopener">https://segmentfault.com/q/1010000003505053</a></li>
+<li><a href="http://stackoverflow.com/questions/14025833/range-over-interface-which-stores-a-slice" target="_blank" rel="noopener">http://stackoverflow.com/questions/14025833/range-over-interface-which-stores-a-slice</a></li>
+<li><a href="http://stackoverflow.com/questions/19560334/how-to-disable-golang-unused-import-error" target="_blank" rel="noopener">http://stackoverflow.com/questions/19560334/how-to-disable-golang-unused-import-error</a></li>
+<li><a href="http://stackoverflow.com/questions/24878737/what-is-the-difference-between-go-get-and-go-install" target="_blank" rel="noopener">http://stackoverflow.com/questions/24878737/what-is-the-difference-between-go-get-and-go-install</a></li>
+<li><a href="http://stackoverflow.com/questions/23542989/pointers-vs-values-in-parameters-and-return-values/23551970#23551970" target="_blank" rel="noopener">http://stackoverflow.com/questions/23542989/pointers-vs-values-in-parameters-and-return-values/23551970#23551970</a></li>
+<li><a href="http://stackoverflow.com/questions/25025409/delete-element-in-a-slice" target="_blank" rel="noopener">http://stackoverflow.com/questions/25025409/delete-element-in-a-slice</a></li>
+</ol>
+
+        </div>
+        <footer class="article-footer">
+            
+
+
+
+    <a data-url="http://xidui.github.io/2016/03/06/Go语言学习笔记/" data-id="cjq2vr2hr003m6cujqi9b6i6w" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+        </footer>
+    </div>
+</article>
+
+    <section id="comments">
+    
+        
+    <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    </div>
+
+    
+    </section>
+
+
+
+                        </div>
+                    </section>
+                    <aside id="sidebar">
+    <a class="sidebar-toggle" title="Expand Sidebar"><i class="toggle icon"></i></a>
+    <div class="sidebar-top">
+        <p>follow:</p>
+        <ul class="social-links">
+            
+                
+                <li>
+                    <a class="social-tooltip" title="twitter" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-twitter"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="facebook" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-facebook"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="google-plus" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-google-plus"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="github" href="https://github.com/ppoffice/hexo-theme-hueman" target="_blank" rel="noopener">
+                        <i class="icon fa fa-github"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="weibo" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-weibo"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="rss" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-rss"></i>
+                    </a>
+                </li>
+                
+            
+        </ul>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/2016/03/27/算法训练笔记——GCJ-2008-R1A-B-Milkshakes/" id="article-nav-newer" class="article-nav-link-wrap">
+        <strong class="article-nav-caption">newer</strong>
+        <p class="article-nav-title">
+        
+            算法训练——GCJ-2008-R1A-B-Milkshakes
+        
+        </p>
+        <i class="icon fa fa-chevron-right" id="icon-chevron-right"></i>
+    </a>
+    
+    
+        <a href="/2016/01/26/浅析tornado协程运行原理/" id="article-nav-older" class="article-nav-link-wrap">
+        <strong class="article-nav-caption">older</strong>
+        <p class="article-nav-title">浅析tornado协程运行原理</p>
+        <i class="icon fa fa-chevron-left" id="icon-chevron-left"></i>
+        </a>
+    
+</nav>
+
+    
+    <div class="widgets-container">
+        
+            
+                
+
+            
+                
+    <div class="widget-wrap">
+        <h3 class="widget-title">recents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/02/09/记一次kubernetes网络调试/" class="thumbnail">
+    
+    
+        <span style="background-image:url(/images/kubernetes-service.png)" alt="记一次kubernetes网络调试" class="thumbnail-image"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/02/09/记一次kubernetes网络调试/" class="title">记一次kubernetes网络调试</a></p>
+                            <p class="item-date"><time datetime="2017-02-09T23:39:23.000Z" itemprop="datePublished">2017-02-09</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/02/06/在kubernetes中配置skydns/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/02/06/在kubernetes中配置skydns/" class="title">在kubernetes中配置skydns</a></p>
+                            <p class="item-date"><time datetime="2017-02-06T17:08:03.000Z" itemprop="datePublished">2017-02-06</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="title">手动在kubernetes集群中添加minon</a></p>
+                            <p class="item-date"><time datetime="2017-01-04T02:30:30.000Z" itemprop="datePublished">2017-01-03</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/07/13/nginx——map性能测试/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2016/07/13/nginx——map性能测试/" class="title">nginx中map模块的使用及性能测试</a></p>
+                            <p class="item-date"><time datetime="2016-07-13T05:30:58.000Z" itemprop="datePublished">2016-07-13</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="thumbnail">
+    
+    
+        <span style="background-image:url(/images/QQ20160530-0@2x.png)" alt="在linode服务器上安装kubernetes集群" class="thumbnail-image"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="title">在linode服务器上安装kubernetes集群</a></p>
+                            <p class="item-date"><time datetime="2016-05-30T18:32:59.000Z" itemprop="datePublished">2016-05-30</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+            
+                
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">January 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">August 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">May 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">April 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">March 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/11/">November 2014</a><span class="archive-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">tags</h3>
+        <div class="widget">
+            <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/abtest/">abtest</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/angularjs/">angularjs</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ansible/">ansible</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/asyncio/">asyncio</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/c/">c++</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/coroutine/">coroutine</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/dns/">dns</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flannel/">flannel</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flask/">flask</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gcj/">gcj</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gevent/">gevent</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/go/">go</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/http/">http</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iptables/">iptables</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/jquery/">jquery</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/js/">js</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kubernetes/">kubernetes</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/linux/">linux</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/markdown/">markdown</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/matlab/">matlab</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mongodb/">mongodb</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mysql/">mysql</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nginx/">nginx</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/node-js/">node.js</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nodejs/">nodejs</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a><span class="tag-list-count">8</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/shell/">shell</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/threadpool/">threadpool</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/tornado/">tornado</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/unittest/">unittest</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步队列/">异步队列</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据挖掘/">数据挖掘</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/机器学习/">机器学习</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/爬虫/">爬虫</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/翻译/">翻译</a><span class="tag-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-float">
+        <h3 class="widget-title">tag cloud</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/abtest/" style="font-size: 10px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 10px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 10px;">ansible</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/asyncio/" style="font-size: 11.67px;">asyncio</a> <a href="/tags/c/" style="font-size: 18.33px;">c++</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 10px;">dns</a> <a href="/tags/flannel/" style="font-size: 10px;">flannel</a> <a href="/tags/flask/" style="font-size: 10px;">flask</a> <a href="/tags/gcj/" style="font-size: 11.67px;">gcj</a> <a href="/tags/gevent/" style="font-size: 10px;">gevent</a> <a href="/tags/go/" style="font-size: 10px;">go</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/iptables/" style="font-size: 10px;">iptables</a> <a href="/tags/jquery/" style="font-size: 10px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 15px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/markdown/" style="font-size: 10px;">markdown</a> <a href="/tags/matlab/" style="font-size: 11.67px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 15px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 10px;">mysql</a> <a href="/tags/nginx/" style="font-size: 10px;">nginx</a> <a href="/tags/node-js/" style="font-size: 10px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 18.33px;">nodejs</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/shell/" style="font-size: 10px;">shell</a> <a href="/tags/threadpool/" style="font-size: 11.67px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 10px;">unittest</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/并发/" style="font-size: 15px;">并发</a> <a href="/tags/异步队列/" style="font-size: 10px;">异步队列</a> <a href="/tags/数据挖掘/" style="font-size: 10px;">数据挖掘</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/机器学习/" style="font-size: 10px;">机器学习</a> <a href="/tags/爬虫/" style="font-size: 10px;">爬虫</a> <a href="/tags/算法/" style="font-size: 16.67px;">算法</a> <a href="/tags/翻译/" style="font-size: 10px;">翻译</a>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">links</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://hexo.io">Hexo</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+            
+        
+    </div>
+</aside>
+
+                </div>
+            </div>
+        </div>
+        <footer id="footer">
+    <div class="container">
+        <div class="container-inner">
+            <a id="back-to-top" href="javascript:;"><i class="icon fa fa-angle-up"></i></a>
+            <div class="credit">
+                <h1 class="logo-wrap">
+                    <a href="/" class="logo"></a>
+                </h1>
+                <p>&copy; 2018 xidui</p>
+                <p>Powered by <a href="//hexo.io/" target="_blank">Hexo</a>. Theme by <a href="//github.com/ppoffice" target="_blank">PPOffice</a></p>
+            </div>
+            <div class="footer-plugins">
+              
+    
+
+
+            </div>
+        </div>
+    </div>
+</footer>
+
+        
+    
+    <script>
+    var disqus_shortname = 'hexo-theme-hueman';
+    
+    
+    var disqus_url = 'http://xidui.github.io/2016/03/06/Go语言学习笔记/';
+    
+    (function() {
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+        <script src="/libs/justified-gallery/jquery.justifiedGallery.min.js"></script>
+    
+    
+
+
+
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>

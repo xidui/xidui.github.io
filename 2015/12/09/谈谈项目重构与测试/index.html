@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+
+    
+
+    
+    <title>谈谈项目的重构与测试 | xidui is very lazy</title>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+        <meta name="keywords" content="python,mongodb,tornado,flask,unittest">
+    
+    <meta name="description" content="背景这几个月我开发了公司里的一个restful webservice，起初技术选型的时候是采用了flask框架。虽然flask是一个同步的框架，但是可以配合gevent或者其它方式运行在异步的容器中(测试链接)，效果看上去也还可以，因此就采用了这种方式。 后面阅读了tornado的源码，也去了解了各种协程框架以及运行的原理。总感觉flask的这种同步方式编程不够好，同时对于这种运行在容器里的模式目">
+<meta name="keywords" content="python,mongodb,tornado,flask,unittest">
+<meta property="og:type" content="article">
+<meta property="og:title" content="谈谈项目的重构与测试">
+<meta property="og:url" content="http://xidui.github.io/2015/12/09/谈谈项目重构与测试/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="背景这几个月我开发了公司里的一个restful webservice，起初技术选型的时候是采用了flask框架。虽然flask是一个同步的框架，但是可以配合gevent或者其它方式运行在异步的容器中(测试链接)，效果看上去也还可以，因此就采用了这种方式。 后面阅读了tornado的源码，也去了解了各种协程框架以及运行的原理。总感觉flask的这种同步方式编程不够好，同时对于这种运行在容器里的模式目">
+<meta property="og:locale" content="en">
+<meta property="og:updated_time" content="2016-03-06T08:28:40.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="谈谈项目的重构与测试">
+<meta name="twitter:description" content="背景这几个月我开发了公司里的一个restful webservice，起初技术选型的时候是采用了flask框架。虽然flask是一个同步的框架，但是可以配合gevent或者其它方式运行在异步的容器中(测试链接)，效果看上去也还可以，因此就采用了这种方式。 后面阅读了tornado的源码，也去了解了各种协程框架以及运行的原理。总感觉flask的这种同步方式编程不够好，同时对于这种运行在容器里的模式目">
+    
+
+    
+        <link rel="alternate" href="/" title="xidui is very lazy" type="application/atom+xml">
+    
+
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/titillium-web/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/3.3.1/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+        <link rel="stylesheet" href="/libs/justified-gallery/justifiedGallery.min.css">
+    
+    
+    
+
+
+</head>
+</html>
+<body>
+    <div id="wrap">
+        <header id="header">
+    <div id="header-outer" class="outer">
+        <div class="container">
+            <div class="container-inner">
+                <div id="header-title">
+                    <h1 class="logo-wrap">
+                        <a href="/" class="logo"></a>
+                    </h1>
+                    
+                </div>
+                <div id="header-inner" class="nav-container">
+                    <a id="main-nav-toggle" class="nav-icon fa fa-bars"></a>
+                    <div class="nav-container-inner">
+                        <ul id="main-nav">
+                            
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/">Home</a>
+                                </li>
+                            
+                                        
+                                    
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/about/index.html">About</a>
+                                </li>
+                            
+                        </ul>
+                        <nav id="sub-nav">
+                            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+        <div class="container">
+            <div class="main-body container-inner">
+                <div class="main-body-inner">
+                    <section id="main">
+                        <div class="main-body-header">
+    <h1 class="header">
+    
+    uncategorized
+    </h1>
+</div>
+
+                        <div class="main-body-content">
+                            <article id="post-谈谈项目重构与测试" class="article article-single article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+        谈谈项目的重构与测试
+        </h1>
+    
+
+            </header>
+        
+        
+            <div class="article-meta">
+                
+    <div class="article-date">
+        <a href="/2015/12/09/谈谈项目重构与测试/" class="article-date">
+            <time datetime="2015-12-10T02:45:23.000Z" itemprop="datePublished">2015-12-09</time>
+        </a>
+    </div>
+
+		
+
+                
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/flask/">flask</a>, <a class="tag-link" href="/tags/mongodb/">mongodb</a>, <a class="tag-link" href="/tags/python/">python</a>, <a class="tag-link" href="/tags/tornado/">tornado</a>, <a class="tag-link" href="/tags/unittest/">unittest</a>
+    </div>
+
+            </div>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+            <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>这几个月我开发了公司里的一个restful webservice，起初技术选型的时候是采用了<code>flask</code>框架。虽然flask是一个同步的框架，但是可以配合<code>gevent</code>或者其它方式运行在异步的容器中(<a href="http://itindex.net/detail/26512-flask-tornado-gevent" target="_blank" rel="noopener">测试链接</a>)，效果看上去也还可以，因此就采用了这种方式。</p>
+<p>后面阅读了<code>tornado</code>的源码，也去了解了各种协程框架以及运行的原理。总感觉flask的这种同步方式编程不够好，同时对于这种运行在容器里的模式目前还缺乏了解。但至少现在对于tornado的运行原理有了一定的了解，如果用tornado写的话，是很可控的，而且可以保证运行是高效的。因此就决定把原来基于flask的项目用tornado重构了。</p>
+<a id="more"></a>
+<h3 id="重构的过程"><a href="#重构的过程" class="headerlink" title="重构的过程"></a>重构的过程</h3><p>项目重构的过程中遇到了一些问题，也学习了一些东西，这里做一个简单的总结。</p>
+<h4 id="接入层"><a href="#接入层" class="headerlink" title="接入层"></a>接入层</h4><p>所有框架都要处理的一个接入层的事情就是：</p>
+<ul>
+<li>url-mapping</li>
+<li>项目初始化</li>
+<li>参数解析</li>
+</ul>
+<p>对于restful风格的接口以及项目的初始化，每个框架都有自己的方式，在它们的文档中都演示得特别清楚，所以关于这些我就不展开了。</p>
+<p>关于参数解析，这里并不是指简单地调用类似于<code>get_argument</code>这样的方法去获取数据。而是 <strong>如何从不可靠的client端传来的数据中过滤掉服务器不关注的数据，同时对服务器关注的数据作一些更强的校验</strong>，这就是协议层的事情了。</p>
+<p>使用谷歌的<code>ProtocolBuffer</code>是一个不错的方案，它有很不错的数据压缩率，也支持目前大多数主流的开发语言。但在一些小型项目中，我还是更偏向于使用<code>json</code>的方式，它显得更加灵活。但是对于json的话，如何作数据校验就是另外一个问题了。</p>
+<p>在重构前，我是通过python中的<code>装饰器</code>来实现的这个功能:<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">SomeHandlerInFlask</span><span class="params">(Resource)</span>:</span></span><br><span class="line"><span class="meta">    @util.deco(&#123;</span></span><br><span class="line">        <span class="string">'key_x'</span>: (str, <span class="string">'form'</span>),</span><br><span class="line">        <span class="string">'key_y'</span>: (int, <span class="string">'form'</span>),</span><br><span class="line">        <span class="string">'key_z'</span>: (str, <span class="string">'url'</span>)</span><br><span class="line">    &#125;)</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">post</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="comment"># logic code</span></span><br><span class="line">        <span class="keyword">pass</span></span><br></pre></td></tr></table></figure></p>
+<p>在装饰器中分别从不同的地方，form或者url中获取相应的参数。如果取不到，则直接报错，逻辑也不会进入到post函数中。</p>
+<p>这是我基于flask这个框架自己总结出来的一套尚且还能看能用的参数解析方式，如果在每个函数中通过框架提供的<code>get_argument</code>来逐一获取参数，则显得太丑，而且每个接口所需要的数据是什么也不够直观。不过这种方式我自己还不是特别满意，总感觉还是有点不太舒服，也说不清不舒服在哪里。那就干脆放弃它，使用别的方式吧。</p>
+<p>后来我了解到了<a href="https://github.com/Julian/jsonschema" target="_blank" rel="noopener">jsonschema</a>这个东西，看了一下感觉与ProtocolBuffer很相似，只不过它是采用json的格式定义，正合我意(对于它我也有点吐槽，在数据库层有提到)，每次数据进来就对数据和schema作一次validate操作，再进入业务逻辑层。</p>
+<h4 id="业务逻辑层"><a href="#业务逻辑层" class="headerlink" title="业务逻辑层"></a>业务逻辑层</h4><p>业务逻辑层的重构其实改动的代码并不多，把一些同步的操作改成异步的操作。就拿如何重构某个接口来说吧，重构前的代码可能是这样的:<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">function_before_refactor</span><span class="params">(some_params)</span>:</span></span><br><span class="line">    result_1 = sync_call_1(some_params)</span><br><span class="line">    result_2 = sync_call_2(some_params)</span><br><span class="line">    <span class="comment"># some other processes</span></span><br><span class="line">    <span class="keyword">return</span> result</span><br></pre></td></tr></table></figure></p>
+<p>使用<code>gen.coroutine</code>重构后:<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> tornado <span class="keyword">import</span> gen</span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">function_after_refactor</span><span class="params">(some_params)</span>:</span></span><br><span class="line">    <span class="comment"># if you don't want to refactor</span></span><br><span class="line">    <span class="comment"># just call it as it always be</span></span><br><span class="line">    result_1 = sync_call_1(some_params)</span><br><span class="line">    result_2 = <span class="keyword">yield</span> async_call_2(some_params)</span><br><span class="line">    <span class="comment"># some other processes</span></span><br><span class="line">    <span class="keyword">raise</span> gen.Return(result)</span><br><span class="line">    <span class="comment"># python3及以上的版本不需要采用抛出异常的方式，直接return就可以了</span></span><br><span class="line">    <span class="comment"># return result</span></span><br></pre></td></tr></table></figure></p>
+<p>考虑到函数名根本不用改，重构的过程非常容易：</p>
+<ul>
+<li>函数用<code>gen.coroutine</code>包装成协程</li>
+<li>已经重构成异步方式的函数调用时添加<code>yield</code>关键字即可</li>
+<li>函数返回采用<code>raise gen.Return(result)</code>的方式（仅限于Python 2.7）</li>
+</ul>
+<p>因为我目前采用的是python 2.7，所以在处理返回的时候要用抛出异常的方式，在这种方式下有一个点需要注意到，那就是与平常异常的处理的混用，不然会导致逻辑流执行混乱：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> tornado <span class="keyword">import</span> gen</span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">function_after_refactor</span><span class="params">(some_params)</span>:</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="comment"># some logic code</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        <span class="keyword">if</span> isinstance(e, gen.Return):</span><br><span class="line">            <span class="comment"># return the value raised by logic</span></span><br><span class="line">            <span class="keyword">raise</span> gen.Return(e.value)</span><br><span class="line">        <span class="comment"># more exception process</span></span><br></pre></td></tr></table></figure></p>
+<h4 id="数据库层"><a href="#数据库层" class="headerlink" title="数据库层"></a>数据库层</h4><p>数据库采用的是<code>mongodb</code>，在flask框架中采用了<a href="https://github.com/MongoEngine/mongoengine" target="_blank" rel="noopener">mongoengine</a>作为数据库层的orm，对于这个python-mongodb的orm产品，我个人并不是很喜欢(可能是因为我习惯了<a href="https://github.com/Automattic/mongoose" target="_blank" rel="noopener">mongoose</a>的工作方式)，这里面嵌套json的定义居然不能体现在schema中，需要分开定义两个schema，然后再作引入的操作。比如（代码只是用作演示，与项目无关）：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Comment</span><span class="params">(EmbeddedDocument)</span>:</span></span><br><span class="line">    content = StringField()</span><br><span class="line">    <span class="comment"># more comment details</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Page</span><span class="params">(Document)</span>:</span></span><br><span class="line">    comments = ListField(EmbeddedDocumentField(Comment))</span><br><span class="line">    <span class="comment"># more page details</span></span><br></pre></td></tr></table></figure></p>
+<p>而在mongoose中就直观多了:<br><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> PageSchema = <span class="keyword">new</span> Schema(&#123;</span><br><span class="line">    title       :   &#123;<span class="attr">type</span> : <span class="built_in">String</span>, <span class="attr">required</span> : <span class="literal">true</span>&#125;,</span><br><span class="line">    time        :   &#123;<span class="attr">type</span> : <span class="built_in">Date</span>, <span class="attr">default</span> : <span class="built_in">Date</span>.now(), <span class="attr">required</span> : <span class="literal">true</span>&#125;,</span><br><span class="line">    comments    :   [&#123;</span><br><span class="line">        content   :   &#123;<span class="attr">type</span> : <span class="built_in">String</span>&#125;</span><br><span class="line">        <span class="comment">// more comment details</span></span><br><span class="line">    &#125;]</span><br><span class="line">    <span class="comment">// more page details</span></span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure></p>
+<p>扯远了，在tornado的框架中，再使用mongoengine就不合适了，毕竟有着异步和同步的区别。那有什么比较好的python-mongodb的异步orm框架呢？搜了下，有一个叫做<a href="https://github.com/heynemann/motorengine" target="_blank" rel="noopener">motorengine</a>的东西，orm的使用方式和mongoengine基本一样，但看它的star数实在不敢用呀。而且它处理异步的方式是使用回调，现在都是使用协程的年代了，想想还是算了吧。</p>
+<p>最后找了个<a href="https://github.com/mongodb/motor" target="_blank" rel="noopener">motor</a>，感觉还不错，它有对目前大部分主流协程框架的支持，操作mongodb的方式与直接使用<a href="https://github.com/mongodb/mongo-python-driver" target="_blank" rel="noopener">pymongo</a>的方式差不多（毕竟都是基于pymongo的封装嘛），但是就是没有orm的验证层，那就自己再去另外搞一个简化的orm层吧。(<a href="https://github.com/namlook/mongokit" target="_blank" rel="noopener">mongokit</a>的orm方式看上去还不错，但貌似对协程框架的支持一般)。这里暂时先懒惰一下，还是采用了<a href="https://github.com/Julian/jsonschema" target="_blank" rel="noopener">jsonschema</a>。每次保存前都validate一下对象是否符合schema的定义。如果没有类mongoose的python-mongodb异步框架，有时间就自己写一个吧~</p>
+<p>这里顺带吐槽一下jsonschema，简直太琐碎了，一个很短的文档结构定义，它会描述成好几十行，我就不贴代码了，有兴趣的朋友可以戳这里<a href="http://jsonschema.net/" target="_blank" rel="noopener">http://jsonschema.net/</a>玩玩。而且python中的jsonschema库还不支持对于default关键字的操作，参见这个<a href="https://github.com/Julian/jsonschema/issues/266" target="_blank" rel="noopener">issue</a>。</p>
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><h4 id="自己摸索的一种接口测试方案"><a href="#自己摸索的一种接口测试方案" class="headerlink" title="自己摸索的一种接口测试方案"></a>自己摸索的一种接口测试方案</h4><p>python中的测试框架有很多，只要选择一个合适的能够很方便与项目集成就好。我个人还是很喜欢<code>unittest</code>这个框架，小而精。我的这套测试方案也是基于unittest框架的。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># TestUserPostAccessComponents.py</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">TestUserPostAccessComponents</span><span class="params">(unittest.TestCase)</span>:</span></span><br><span class="line"><span class="meta">    @classmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">setUpClass</span><span class="params">(cls)</span>:</span></span><br><span class="line">        <span class="comment"># 定义在其它地方，具体细节就不展示了</span></span><br><span class="line">        <span class="comment"># 在setup中使用测试账号获取登陆态</span></span><br><span class="line">        <span class="comment"># 并把各种中间用得到的信息放在TestUserPostAccess类上</span></span><br><span class="line">        setup(cls)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @classmethod</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">tearDownClass</span><span class="params">(cls)</span>:</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">setUp</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">tearDown</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">test_1_user_1_user_2_add_friend</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">test_2_user_1_user_2_del_friend</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">test_3_user_1_add_public_user_post</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># more other components</span></span><br></pre></td></tr></table></figure></p>
+<p>最顶层的测试文件：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># run_test.py</span></span><br><span class="line"><span class="comment"># 各种import</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">user_basic_post_access_test</span><span class="params">()</span>:</span></span><br><span class="line">    tests = [<span class="string">'test_3_user_1_add_public_user_post'</span>,</span><br><span class="line">             <span class="string">'test_5_user_2_as_a_stranger_can_access_public_user_post'</span>,</span><br><span class="line">             <span class="string">'test_4_user_1_del_public_user_post'</span>,</span><br><span class="line">             <span class="string">'test_6_user_1_add_private_user_post'</span>,</span><br><span class="line">             <span class="string">'test_8_user_2_as_a_stranger_can_not_access_private_user_post'</span>,</span><br><span class="line">             <span class="string">'test_9_user_1_self_can_access_private_user_post'</span>,</span><br><span class="line">             <span class="string">'test_7_user_1_del_private_user_post'</span>]</span><br><span class="line">    <span class="keyword">return</span> unittest.TestSuite(map(TestUserPostAccessComponents, tests))</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">other_process_test</span><span class="params">()</span>:</span></span><br><span class="line">    tests = [</span><br><span class="line">        <span class="comment"># compose a process by components by yourself</span></span><br><span class="line">    ]</span><br><span class="line">    <span class="keyword">return</span> unittest.TestSuite(map(OtherTestCaseComponents, tests))</span><br><span class="line"></span><br><span class="line">runner = unittest.TextTestRunner(verbosity=<span class="number">2</span>)</span><br><span class="line">runner.run(user_basic_post_access_test())</span><br><span class="line">runner.run(other_process_test())</span><br></pre></td></tr></table></figure></p>
+<p>这套测试是基于 <strong>BDD</strong> (行为驱动)的测试方式，针对每一个逻辑模块，定义一个components类，把所有子操作都定义成单独的测试单元。这里面的测试单元可以是完全无序的，把逻辑有序化组织成测试用例的过程会在最外面通过<code>TestSuit</code>的方式组织起来。这里可能会有一些异议，因为有些人在使用这个测试类的时候是把它作为一个测试用例来组织的，当然这些都是不同的使用方式。</p>
+<p>这套测试方案中的每个component都是api级别的测试，并不是函数级别的测试（集成测试与单元测试），每个TestSuit都是完整的一个业务流程。这样的好处在于 <strong>测试和项目完全解耦</strong>。测试代码不用关心项目的代码是同步还是异步的。就算项目重构了，测试完全无感知，只要api没变，就可以继续工作。</p>
+<p>当然以上都是理想的状态，因为在刚开始写这些测试的时候我还没有总结到这些点，导致了一些耦合性的存在。比如说测试代码中import了项目中的某个函数去获取一些数据，用于检查某个component的更新操作是否成功。在重构的过程中，该函数被重构成了协程。这样一来，在测试代码中就不能采用原来一样的方式去调用了，也就是说测试代码受到了框架同步与异步的影响，下一节我们就来谈谈同步与异步的测试，以及对于这种问题的解决方案。</p>
+<h4 id="异步测试-amp-同步测试"><a href="#异步测试-amp-同步测试" class="headerlink" title="异步测试&amp;同步测试"></a>异步测试&amp;同步测试</h4><p>在tornado中，也提供了一套测试的功能，具体在<code>tornado.testing</code>这个模块，看它源码其实可以发现它也是基于<code>unittest</code>的一层封装。<br><strong>我心里一直有一个问题</strong>：unittest的执行流程是同步的，既然这样，它是怎么去测一个由<code>gen.coroutine</code>包装的协程的呢，毕竟后者是异步的。<br>直到看了源码，恍然大悟，原来是<code>io_loop.run_sync</code>这个函数的功劳，具体实现在<code>gen_test</code>这个装饰器中，摘一部分源码（对于tornado源码不熟的同学可以先去看看tornado中的ioloop模块的实现，看完会对这个部分有更深刻的理解）：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">gen_test</span><span class="params">(func=None, timeout=None)</span>:</span></span><br><span class="line">    <span class="keyword">if</span> timeout <span class="keyword">is</span> <span class="keyword">None</span>:</span><br><span class="line">        timeout = get_async_test_timeout()</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrap</span><span class="params">(f)</span>:</span></span><br><span class="line">        <span class="comment"># Stack up several decorators to allow us to access the generator</span></span><br><span class="line">        <span class="comment"># object itself.  In the innermost wrapper, we capture the generator</span></span><br><span class="line">        <span class="comment"># and save it in an attribute of self.  Next, we run the wrapped</span></span><br><span class="line">        <span class="comment"># function through @gen.coroutine.  Finally, the coroutine is</span></span><br><span class="line">        <span class="comment"># wrapped again to make it synchronous with run_sync.</span></span><br><span class="line">        <span class="comment">#</span></span><br><span class="line">        <span class="comment"># This is a good case study arguing for either some sort of</span></span><br><span class="line">        <span class="comment"># extensibility in the gen decorators or cancellation support.</span></span><br><span class="line"><span class="meta">        @functools.wraps(f)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">pre_coroutine</span><span class="params">(self, *args, **kwargs)</span>:</span></span><br><span class="line">            result = f(self, *args, **kwargs)</span><br><span class="line">            <span class="keyword">if</span> isinstance(result, types.GeneratorType):</span><br><span class="line">                self._test_generator = result</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                self._test_generator = <span class="keyword">None</span></span><br><span class="line">            <span class="keyword">return</span> result</span><br><span class="line"></span><br><span class="line">        coro = gen.coroutine(pre_coroutine)</span><br><span class="line"></span><br><span class="line"><span class="meta">        @functools.wraps(coro)</span></span><br><span class="line">        <span class="function"><span class="keyword">def</span> <span class="title">post_coroutine</span><span class="params">(self, *args, **kwargs)</span>:</span></span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                <span class="keyword">return</span> self.io_loop.run_sync(</span><br><span class="line">                    functools.partial(coro, self, *args, **kwargs),</span><br><span class="line">                    timeout=timeout)</span><br><span class="line">            <span class="keyword">except</span> TimeoutError <span class="keyword">as</span> e:</span><br><span class="line">                <span class="comment"># run_sync raises an error with an unhelpful traceback.</span></span><br><span class="line">                <span class="comment"># If we throw it back into the generator the stack trace</span></span><br><span class="line">                <span class="comment"># will be replaced by the point where the test is stopped.</span></span><br><span class="line">                self._test_generator.throw(e)</span><br><span class="line">                <span class="comment"># In case the test contains an overly broad except clause,</span></span><br><span class="line">                <span class="comment"># we may get back here.  In this case re-raise the original</span></span><br><span class="line">                <span class="comment"># exception, which is better than nothing.</span></span><br><span class="line">                <span class="keyword">raise</span></span><br><span class="line">        <span class="keyword">return</span> post_coroutine</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> func <span class="keyword">is</span> <span class="keyword">not</span> <span class="keyword">None</span>:</span><br><span class="line">        <span class="comment"># Used like:</span></span><br><span class="line">        <span class="comment">#     @gen_test</span></span><br><span class="line">        <span class="comment">#     def f(self):</span></span><br><span class="line">        <span class="comment">#         pass</span></span><br><span class="line">        <span class="keyword">return</span> wrap(func)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># Used like @gen_test(timeout=10)</span></span><br><span class="line">        <span class="keyword">return</span> wrap</span><br></pre></td></tr></table></figure></p>
+<p>在源码中，先把某个测试单元封装成一个协程，然后获取当前线程的ioloop对象，把协程抛给他去执行，直到执行完毕。这样就完美地实现了异步到同步的过渡，满足unittest测试框架的同步需求。<br>在具体的使用中只需要继承tornado提供的<code>AsyncTestCase</code>类就行了，注意这里不是<code>unittest.TestCase</code>。看了源码也可以发现，前者就是继承自后者的。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># This test uses coroutine style.</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">MyTestCase</span><span class="params">(AsyncTestCase)</span>:</span></span><br><span class="line"><span class="meta">    @tornado.testing.gen_test</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">test_http_fetch</span><span class="params">(self)</span>:</span></span><br><span class="line">        client = AsyncHTTPClient(self.io_loop)</span><br><span class="line">        response = <span class="keyword">yield</span> client.fetch(<span class="string">"http://www.tornadoweb.org"</span>)</span><br><span class="line">        <span class="comment"># Test contents of response</span></span><br><span class="line">        self.assertIn(<span class="string">"FriendFeed"</span>, response.body)</span><br></pre></td></tr></table></figure></p>
+<p>回到上一节的问题，有了这种方式，就可以很容易地解决同步异步的问题了。如果测试用例中某一个函数已经被项目重构成了协程，只需要做以下三步：</p>
+<ul>
+<li>把测试components的类改成继承自<code>AsyncTestCase</code></li>
+<li>该测试单元使用<code>gen_test</code>装饰（其它测试单元可以不用加，只需要改涉及到协程的测试单元就行）</li>
+<li>调用协程的地方添加<code>yield</code>关键字</li>
+</ul>
+<h4 id="测试代码如何适应项目的重构"><a href="#测试代码如何适应项目的重构" class="headerlink" title="测试代码如何适应项目的重构"></a>测试代码如何适应项目的重构</h4><ul>
+<li>如果是api测试<br>测试中尽量不要调用任何项目中的代码，它只专注于测试接口是否按照预期在工作，具体里面是怎么样的不需要关心。这样的话整套测试是完全独立于项目而存在的，即使项目重构，也可以不用作任何修改，无缝对接。</li>
+<li>如果是单元测试<br>参考上一节的方案。</li>
+</ul>
+<p><strong>一些关于测试规范的总结</strong>：</p>
+<ul>
+<li>测试代码执行前后应尽量保证整个系统状态的一致<br>虽然说测试环境和线上环境往往用的是两套系统，数据互不影响的。但我个人编写测试的时候还是有一个习惯，<em>一旦有一条数据记录的插入，必然会对应一条相应数据的删除</em>，可以从我前面的那个例子中看到。这个有两点好处，<strong>一来</strong> 可以使测试覆盖率更广，毕竟api设计的时候crud中的c和d总是成对出现的，这样可以保证一个测试用例就可以覆盖两个操作。<strong>二来</strong> 可以保证不同测试用例之间环境的独立，不会因为前一个用例的某个脏数据导致之后某些测试用例的失败。</li>
+<li>每发现一个bug，修复的同时，针对这个bug重现的流程写一个测试用例<br>这样可以保证不管代码怎么改，在回归测试的时候这个bug的隐患总是可以被覆盖到，这么做可以确保相同的错误不会犯第二次。</li>
+<li>先写测试VS先写业务<br>测试驱动开发有一点强调的是先写测试，再写业务。不过对于这点，我倒并不是那么赞同。我觉得主要是看你怎么写方便就怎么写，毕竟有些时候业务还没写，测试用例往往很难写得完整。比如测试用例中依赖到的一些业务流程，可能会因为接口的重构与封装而变更，这个时候就没有谁先谁后了，可能要两边都时不时改动。测试代码和业务代码互相完善，最后调通。不过有一点是很确定的，<strong>尽量保证所有想到的业务都有对应的测试用例</strong>！</li>
+</ul>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>重构是一个不断优化和学习的过程，在这个过程中我踩了一些坑，也爬出了一些坑，希望可以把我的这些总结分享给大家。欢迎大家跟我交流。对于文中的一些方案，也欢迎大家拍砖，欢迎有更多的做法可以一起探讨学习。另外，对于这个项目的重构，文章里面可能还少了一些更加直观的性能测试，后面我会加上去，孝敬各位爷~</p>
+
+        </div>
+        <footer class="article-footer">
+            
+
+
+
+    <a data-url="http://xidui.github.io/2015/12/09/谈谈项目重构与测试/" data-id="cjq2vr2i8004a6cujg6es2kp5" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+        </footer>
+    </div>
+</article>
+
+    <section id="comments">
+    
+        
+    <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    </div>
+
+    
+    </section>
+
+
+
+                        </div>
+                    </section>
+                    <aside id="sidebar">
+    <a class="sidebar-toggle" title="Expand Sidebar"><i class="toggle icon"></i></a>
+    <div class="sidebar-top">
+        <p>follow:</p>
+        <ul class="social-links">
+            
+                
+                <li>
+                    <a class="social-tooltip" title="twitter" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-twitter"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="facebook" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-facebook"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="google-plus" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-google-plus"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="github" href="https://github.com/ppoffice/hexo-theme-hueman" target="_blank" rel="noopener">
+                        <i class="icon fa fa-github"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="weibo" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-weibo"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="rss" href="/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-rss"></i>
+                    </a>
+                </li>
+                
+            
+        </ul>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+        <a href="/2015/12/24/async源码阅读笔记/" id="article-nav-newer" class="article-nav-link-wrap">
+        <strong class="article-nav-caption">newer</strong>
+        <p class="article-nav-title">
+        
+            async源码阅读笔记
+        
+        </p>
+        <i class="icon fa fa-chevron-right" id="icon-chevron-right"></i>
+    </a>
+    
+    
+        <a href="/2015/11/28/如何让进程后台运行——多种方案整理/" id="article-nav-older" class="article-nav-link-wrap">
+        <strong class="article-nav-caption">older</strong>
+        <p class="article-nav-title">如何让进程后台运行——多种方案整理</p>
+        <i class="icon fa fa-chevron-left" id="icon-chevron-left"></i>
+        </a>
+    
+</nav>
+
+    
+    <div class="widgets-container">
+        
+            
+                
+
+            
+                
+    <div class="widget-wrap">
+        <h3 class="widget-title">recents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="">
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/02/09/记一次kubernetes网络调试/" class="thumbnail">
+    
+    
+        <span style="background-image:url(/images/kubernetes-service.png)" alt="记一次kubernetes网络调试" class="thumbnail-image"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/02/09/记一次kubernetes网络调试/" class="title">记一次kubernetes网络调试</a></p>
+                            <p class="item-date"><time datetime="2017-02-09T23:39:23.000Z" itemprop="datePublished">2017-02-09</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/02/06/在kubernetes中配置skydns/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/02/06/在kubernetes中配置skydns/" class="title">在kubernetes中配置skydns</a></p>
+                            <p class="item-date"><time datetime="2017-02-06T17:08:03.000Z" itemprop="datePublished">2017-02-06</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="title">手动在kubernetes集群中添加minon</a></p>
+                            <p class="item-date"><time datetime="2017-01-04T02:30:30.000Z" itemprop="datePublished">2017-01-03</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/07/13/nginx——map性能测试/" class="thumbnail">
+    
+    
+        <span class="thumbnail-image thumbnail-none"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2016/07/13/nginx——map性能测试/" class="title">nginx中map模块的使用及性能测试</a></p>
+                            <p class="item-date"><time datetime="2016-07-13T05:30:58.000Z" itemprop="datePublished">2016-07-13</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-thumbnail">
+                            <a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="thumbnail">
+    
+    
+        <span style="background-image:url(/images/QQ20160530-0@2x.png)" alt="在linode服务器上安装kubernetes集群" class="thumbnail-image"></span>
+    
+    
+</a>
+
+                        </div>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="title">在linode服务器上安装kubernetes集群</a></p>
+                            <p class="item-date"><time datetime="2016-05-30T18:32:59.000Z" itemprop="datePublished">2016-05-30</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+            
+                
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">January 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">August 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">May 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">April 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">March 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/11/">November 2014</a><span class="archive-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">tags</h3>
+        <div class="widget">
+            <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/abtest/">abtest</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/angularjs/">angularjs</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ansible/">ansible</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/asyncio/">asyncio</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/c/">c++</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/coroutine/">coroutine</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/dns/">dns</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flannel/">flannel</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flask/">flask</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gcj/">gcj</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gevent/">gevent</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/go/">go</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/http/">http</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iptables/">iptables</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/jquery/">jquery</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/js/">js</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kubernetes/">kubernetes</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/linux/">linux</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/markdown/">markdown</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/matlab/">matlab</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mongodb/">mongodb</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mysql/">mysql</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nginx/">nginx</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/node-js/">node.js</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nodejs/">nodejs</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a><span class="tag-list-count">8</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/shell/">shell</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/threadpool/">threadpool</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/tornado/">tornado</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/unittest/">unittest</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步队列/">异步队列</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据挖掘/">数据挖掘</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/机器学习/">机器学习</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/爬虫/">爬虫</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/翻译/">翻译</a><span class="tag-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-float">
+        <h3 class="widget-title">tag cloud</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/abtest/" style="font-size: 10px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 10px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 10px;">ansible</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/asyncio/" style="font-size: 11.67px;">asyncio</a> <a href="/tags/c/" style="font-size: 18.33px;">c++</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 10px;">dns</a> <a href="/tags/flannel/" style="font-size: 10px;">flannel</a> <a href="/tags/flask/" style="font-size: 10px;">flask</a> <a href="/tags/gcj/" style="font-size: 11.67px;">gcj</a> <a href="/tags/gevent/" style="font-size: 10px;">gevent</a> <a href="/tags/go/" style="font-size: 10px;">go</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/iptables/" style="font-size: 10px;">iptables</a> <a href="/tags/jquery/" style="font-size: 10px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 15px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/markdown/" style="font-size: 10px;">markdown</a> <a href="/tags/matlab/" style="font-size: 11.67px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 15px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 10px;">mysql</a> <a href="/tags/nginx/" style="font-size: 10px;">nginx</a> <a href="/tags/node-js/" style="font-size: 10px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 18.33px;">nodejs</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/shell/" style="font-size: 10px;">shell</a> <a href="/tags/threadpool/" style="font-size: 11.67px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 10px;">unittest</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/并发/" style="font-size: 15px;">并发</a> <a href="/tags/异步队列/" style="font-size: 10px;">异步队列</a> <a href="/tags/数据挖掘/" style="font-size: 10px;">数据挖掘</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/机器学习/" style="font-size: 10px;">机器学习</a> <a href="/tags/爬虫/" style="font-size: 10px;">爬虫</a> <a href="/tags/算法/" style="font-size: 16.67px;">算法</a> <a href="/tags/翻译/" style="font-size: 10px;">翻译</a>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">links</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://hexo.io">Hexo</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+            
+        
+    </div>
+</aside>
+
+                </div>
+            </div>
+        </div>
+        <footer id="footer">
+    <div class="container">
+        <div class="container-inner">
+            <a id="back-to-top" href="javascript:;"><i class="icon fa fa-angle-up"></i></a>
+            <div class="credit">
+                <h1 class="logo-wrap">
+                    <a href="/" class="logo"></a>
+                </h1>
+                <p>&copy; 2018 xidui</p>
+                <p>Powered by <a href="//hexo.io/" target="_blank">Hexo</a>. Theme by <a href="//github.com/ppoffice" target="_blank">PPOffice</a></p>
+            </div>
+            <div class="footer-plugins">
+              
+    
+
+
+            </div>
+        </div>
+    </div>
+</footer>
+
+        
+    
+    <script>
+    var disqus_shortname = 'hexo-theme-hueman';
+    
+    
+    var disqus_url = 'http://xidui.github.io/2015/12/09/谈谈项目重构与测试/';
+    
+    (function() {
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+        <script src="/libs/justified-gallery/jquery.justifiedGallery.min.js"></script>
+    
+    
+
+
+
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>
