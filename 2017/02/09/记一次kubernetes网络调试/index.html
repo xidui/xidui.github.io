@@ -29,8 +29,6 @@
     
 
     
-        <link rel="alternate" href="/" title="xidui is very lazy" type="application/atom+xml">
-    
 
     
 
@@ -179,7 +177,7 @@
 <li>对于leetcode.com的访问转发到kubernetes service</li>
 <li>通过label将service与pod绑定，并在service层作负载均衡</li>
 </ul>
-<p>两个pod分布在不同的机器上，其中pod2所在的机器是为了这次的扩容而部署的。关于如何在已有的集群中增加机器，可以参考我<a href="http://xidui.github.io/2017/01/03/手动在kubernetes集群中添加节点/" target="_blank" rel="noopener">这篇文章</a>。当然手动部署可能不是最方便的，如果想要自动部署，可以去看看关于<a href="https://kubernetes.io/docs/getting-started-guides/kubeadm/" target="_blank" rel="noopener">kubeadm</a>的相关资料。</p>
+<p>两个pod分布在不同的机器上，其中pod2所在的机器是为了这次的扩容而部署的。关于如何在已有的集群中增加机器，可以参考我<a href="http://xidui.github.io/2017/01/03/手动在kubernetes集群中添加节点/">这篇文章</a>。当然手动部署可能不是最方便的，如果想要自动部署，可以去看看关于<a href="https://kubernetes.io/docs/getting-started-guides/kubeadm/" target="_blank" rel="noopener">kubeadm</a>的相关资料。</p>
 <h3 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h3><p>当一切准备就绪并导流的时候，旧机器的log在不断地输出，说明工作正常，但新机器的日志文件没有滚动，请求一个也没有进来。检查pod的状态，发现它是一切正常的:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># kubectl get pod --namespace=noj</span></span><br><span class="line">NAME           READY     STATUS    RESTARTS   AGE</span><br><span class="line">noj-rc-i3aca   1/1       Running   0          2h</span><br><span class="line">noj-rc-vgb5e   1/1       Running   0          2h</span><br></pre></td></tr></table></figure></p>
 <p>而且，<code>noj-rc-vgb5e</code>这个pod也是顺利被分配到slave2并启动的。这说明<code>kubelet</code>和<code>kube-proxy</code>的配置没有问题，不然是无法收到master机器的调度请求从而部署pod的。因此首先怀疑<strong>两台机器网络状态是否不一致</strong>。<br>在slave2执行<code>systemctl stop firewalld</code>，请求陆陆续续地进来了。因此应该就是iptables配置的问题，某些规则配置错误，导致网络包被reject了。在debug之前先贴上网络结构图方便之后说明。</p>
 <img src="/images/networking.png">
@@ -207,7 +205,7 @@
 
 
 
-    <a data-url="http://xidui.github.io/2017/02/09/记一次kubernetes网络调试/" data-id="cjq2vr2gs001d6cujuhevftr8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://xidui.github.io/2017/02/09/记一次kubernetes网络调试/" data-id="cjq2vxkb0001cy4ujmwsfi5q8" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         $('body').on('click', function() {
@@ -293,15 +291,7 @@
             
                 
                 <li>
-                    <a class="social-tooltip" title="twitter" href="/" target="_blank" rel="noopener">
-                        <i class="icon fa fa-twitter"></i>
-                    </a>
-                </li>
-                
-            
-                
-                <li>
-                    <a class="social-tooltip" title="facebook" href="/" target="_blank" rel="noopener">
+                    <a class="social-tooltip" title="facebook" href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" rel="noopener">
                         <i class="icon fa fa-facebook"></i>
                     </a>
                 </li>
@@ -309,32 +299,8 @@
             
                 
                 <li>
-                    <a class="social-tooltip" title="google-plus" href="/" target="_blank" rel="noopener">
-                        <i class="icon fa fa-google-plus"></i>
-                    </a>
-                </li>
-                
-            
-                
-                <li>
-                    <a class="social-tooltip" title="github" href="https://github.com/ppoffice/hexo-theme-hueman" target="_blank" rel="noopener">
+                    <a class="social-tooltip" title="github" href="https://github.com/xidui" target="_blank" rel="noopener">
                         <i class="icon fa fa-github"></i>
-                    </a>
-                </li>
-                
-            
-                
-                <li>
-                    <a class="social-tooltip" title="weibo" href="/" target="_blank" rel="noopener">
-                        <i class="icon fa fa-weibo"></i>
-                    </a>
-                </li>
-                
-            
-                
-                <li>
-                    <a class="social-tooltip" title="rss" href="/" target="_blank" rel="noopener">
-                        <i class="icon fa fa-rss"></i>
                     </a>
                 </li>
                 

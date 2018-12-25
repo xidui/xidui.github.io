@@ -29,8 +29,6 @@
     
 
     
-        <link rel="alternate" href="/" title="xidui is very lazy" type="application/atom+xml">
-    
 
     
 
@@ -177,7 +175,7 @@
 <a id="more"></a>
 <p>我希望我对于源码分析的博文能够通过贴上更容易理解的图(当然也会有一些代码来辅助讲解)，这样的分享对读者来说会更加容易读懂，也更有价值。对自己要求高了，反而更难下笔，在试图画图的过程中，发现其实有好多细节自己也没有琢磨透，导致在如何组织这幅流程图的问题上斟酌了好久，不过好在最后终于捯饬出了一张自己觉得还算及格的流程图，作完图的时候我感觉比起之前刚阅读完代码时候的理解又上了一个层次。</p>
 <h3 id="流程图"><a href="#流程图" class="headerlink" title="流程图"></a>流程图</h3><p>tornado执行协程的方式有很多，但协程内部的运行原理没什么区别，这篇文章以<code>IOLoop</code>中的<code>run_sync</code>函数作为入口进行介绍。在开始进行分析之前，先把流程图贴上，其中的细节后面会通过代码辅助的方式一一讲解。<br><img src="/images/tornado_loop.svg"></p>
-<p>在理解tornado运行原理的过程中，我是通过写一个demo，然后在源码中到处打断点，然后调试的方式，一遍遍走，到最后慢慢地理解。顺便也把我的demo代码贴上吧(看过我之前的一篇<a href="http://xidui.github.io/2015/10/29/深入理解python3-4-Asyncio库与Node-js的异步IO机制/" target="_blank" rel="noopener">译文</a>的读者可能会发现，这个demo是从那儿仿照过来的)。</p>
+<p>在理解tornado运行原理的过程中，我是通过写一个demo，然后在源码中到处打断点，然后调试的方式，一遍遍走，到最后慢慢地理解。顺便也把我的demo代码贴上吧(看过我之前的一篇<a href="http://xidui.github.io/2015/10/29/深入理解python3-4-Asyncio库与Node-js的异步IO机制/">译文</a>的读者可能会发现，这个demo是从那儿仿照过来的)。</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> tornado <span class="keyword">import</span> gen</span><br><span class="line"><span class="keyword">from</span> tornado.ioloop <span class="keyword">import</span> IOLoop</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_url</span><span class="params">(url)</span>:</span></span><br><span class="line">    wait_time = random.randint(<span class="number">1</span>, <span class="number">4</span>)</span><br><span class="line">    <span class="keyword">yield</span> gen.sleep(wait_time)</span><br><span class="line">    print(<span class="string">'URL &#123;&#125; took &#123;&#125;s to get!'</span>.format(url, wait_time))</span><br><span class="line">    <span class="keyword">raise</span> gen.Return((url, wait_time))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">outer_coroutine</span><span class="params">()</span>:</span></span><br><span class="line">    before = time.time()</span><br><span class="line">    coroutines = [get_url(url) <span class="keyword">for</span> url <span class="keyword">in</span> [<span class="string">'URL1'</span>, <span class="string">'URL2'</span>, <span class="string">'URL3'</span>]]</span><br><span class="line">    result = <span class="keyword">yield</span> coroutines</span><br><span class="line">    after = time.time()</span><br><span class="line">    print(result)</span><br><span class="line">    print(<span class="string">'total time: &#123;&#125; seconds'</span>.format(after - before))</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    IOLoop.current().run_sync(outer_coroutine)</span><br></pre></td></tr></table></figure>
 <p>有兴趣的读者可以自己去执行一下玩玩，输出类似于这样：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">URL URL1 took 1s to get!</span><br><span class="line">URL URL2 took 2s to get!</span><br><span class="line">URL URL3 took 2s to get!</span><br><span class="line">[('URL1', 1), ('URL2', 2), ('URL3', 2)]</span><br><span class="line">total time: 2.00353884697 seconds</span><br></pre></td></tr></table></figure></p>
 <h3 id="Coroutine"><a href="#Coroutine" class="headerlink" title="Coroutine"></a>Coroutine</h3><p>起初我以为调用协程后，返回的是一个生成器对象，毕竟<code>gen.coroutine</code>装饰在一个函数或者生成器上。看了源码发现，其实每次调用一个协程，它在获取了生成器对象之后，同时又对它执行了<code>next</code>操作来获取生成器内部yield出来的值，这个可以是一个值，当然也可以是一个由内部协程嵌套调用返回的future对象。<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># gen.py</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">_make_coroutine_wrapper</span><span class="params">(func, replace_callback)</span>:</span></span><br><span class="line"><span class="meta">    @functools.wraps(func)</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">wrapper</span><span class="params">(*args, **kwargs)</span>:</span></span><br><span class="line">        future = TracebackFuture()</span><br><span class="line">        <span class="comment"># 省略n行</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            result = func(*args, **kwargs)</span><br><span class="line">        <span class="comment"># 省略n个except</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> isinstance(result, types.GeneratorType):</span><br><span class="line">                <span class="keyword">try</span>:</span><br><span class="line">                    orig_stack_contexts = stack_context._state.contexts</span><br><span class="line">                    yielded = next(result)    </span><br><span class="line">                    <span class="comment"># 如果func内部有yield关键字，result是一个生成器</span></span><br><span class="line">                    <span class="comment"># 如果func内部又调用了其它协程，yielded将会是由嵌套协程返回的future对象</span></span><br><span class="line">                    <span class="comment"># 省略n行</span></span><br><span class="line">                <span class="comment"># 省略n个except</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    Runner(result, future, yielded)</span><br><span class="line">                <span class="keyword">try</span>:</span><br><span class="line">                    <span class="keyword">return</span> future</span><br><span class="line">                <span class="keyword">finally</span>:</span><br><span class="line">                    future = <span class="keyword">None</span></span><br><span class="line">        future.set_result(result)</span><br><span class="line">        <span class="keyword">return</span> future</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br></pre></td></tr></table></figure></p>
@@ -202,7 +200,7 @@
 
 
 
-    <a data-url="http://xidui.github.io/2016/01/26/浅析tornado协程运行原理/" data-id="cjq2vr2hy003q6cujzah4pn1w" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://xidui.github.io/2016/01/26/浅析tornado协程运行原理/" data-id="cjq2vxkcf003qy4uj0t2m0ctq" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         $('body').on('click', function() {
@@ -288,15 +286,7 @@
             
                 
                 <li>
-                    <a class="social-tooltip" title="twitter" href="/" target="_blank" rel="noopener">
-                        <i class="icon fa fa-twitter"></i>
-                    </a>
-                </li>
-                
-            
-                
-                <li>
-                    <a class="social-tooltip" title="facebook" href="/" target="_blank" rel="noopener">
+                    <a class="social-tooltip" title="facebook" href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" rel="noopener">
                         <i class="icon fa fa-facebook"></i>
                     </a>
                 </li>
@@ -304,32 +294,8 @@
             
                 
                 <li>
-                    <a class="social-tooltip" title="google-plus" href="/" target="_blank" rel="noopener">
-                        <i class="icon fa fa-google-plus"></i>
-                    </a>
-                </li>
-                
-            
-                
-                <li>
-                    <a class="social-tooltip" title="github" href="https://github.com/ppoffice/hexo-theme-hueman" target="_blank" rel="noopener">
+                    <a class="social-tooltip" title="github" href="https://github.com/xidui" target="_blank" rel="noopener">
                         <i class="icon fa fa-github"></i>
-                    </a>
-                </li>
-                
-            
-                
-                <li>
-                    <a class="social-tooltip" title="weibo" href="/" target="_blank" rel="noopener">
-                        <i class="icon fa fa-weibo"></i>
-                    </a>
-                </li>
-                
-            
-                
-                <li>
-                    <a class="social-tooltip" title="rss" href="/" target="_blank" rel="noopener">
-                        <i class="icon fa fa-rss"></i>
                     </a>
                 </li>
                 
