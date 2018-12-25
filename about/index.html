@@ -6,26 +6,23 @@
     
 
     
-    <title>记一次kubernetes网络调试 | xidui is very lazy</title>
+    <title>xidui is very lazy</title>
     
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     
-        <meta name="keywords" content="kubernetes,iptables">
-    
-    <meta name="description" content="背景过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：">
-<meta name="keywords" content="kubernetes,iptables">
-<meta property="og:type" content="article">
-<meta property="og:title" content="记一次kubernetes网络调试">
-<meta property="og:url" content="http://xidui.github.io/2017/02/09/记一次kubernetes网络调试/index.html">
+    <meta name="description" content="大家好，我叫王越，网名xidui，目前生活在美国。毕业于 卡内基梅陇大学 软件工程硕士项目，马上入职 谷歌。 曾就职于 腾讯IEG，LeetCode，如有兴趣可以前往我的领英链接查看。 本博客将会不定期的记录日常的学习收获已经生活中的琐碎。由于博主很懒，所以并没有一个固定的更新频率。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="xidui is very lazy">
+<meta property="og:url" content="http://xidui.github.io/about/index.html">
 <meta property="og:site_name" content="xidui is very lazy">
-<meta property="og:description" content="背景过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：">
+<meta property="og:description" content="大家好，我叫王越，网名xidui，目前生活在美国。毕业于 卡内基梅陇大学 软件工程硕士项目，马上入职 谷歌。 曾就职于 腾讯IEG，LeetCode，如有兴趣可以前往我的领英链接查看。 本博客将会不定期的记录日常的学习收获已经生活中的琐碎。由于博主很懒，所以并没有一个固定的更新频率。">
 <meta property="og:locale" content="en">
-<meta property="og:image" content="http://xidui.github.io/images/kubernetes-service.png">
-<meta property="og:updated_time" content="2018-12-25T16:49:06.770Z">
+<meta property="og:image" content="http://xidui.github.io/images/about_me.jpg">
+<meta property="og:updated_time" content="2018-12-25T17:54:22.893Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="记一次kubernetes网络调试">
-<meta name="twitter:description" content="背景过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：">
-<meta name="twitter:image" content="http://xidui.github.io/images/kubernetes-service.png">
+<meta name="twitter:title" content="xidui is very lazy">
+<meta name="twitter:description" content="大家好，我叫王越，网名xidui，目前生活在美国。毕业于 卡内基梅陇大学 软件工程硕士项目，马上入职 谷歌。 曾就职于 腾讯IEG，LeetCode，如有兴趣可以前往我的领英链接查看。 本博客将会不定期的记录日常的学习收获已经生活中的琐碎。由于博主很懒，所以并没有一个固定的更新频率。">
+<meta name="twitter:image" content="http://xidui.github.io/images/about_me.jpg">
     
 
     
@@ -153,72 +150,21 @@ var _hmt = _hmt || [];
                         <div class="main-body-header">
     <h1 class="header">
     
-    <a class="page-title-link" href="/categories/Tech/">Tech</a>
+    xidui is very lazy
     </h1>
 </div>
 
                         <div class="main-body-content">
-                            <article id="post-记一次kubernetes网络调试" class="article article-single article-type-post" itemscope="" itemprop="blogPost">
+                            <article id="page-" class="article article-single article-type-page" itemscope="" itemprop="blogPost">
     <div class="article-inner">
         
-            <header class="article-header">
-                
-    
-        <h1 class="article-title" itemprop="name">
-        记一次kubernetes网络调试
-        </h1>
-    
-
-            </header>
-        
-        
-            <div class="article-meta">
-                
-    <div class="article-date">
-        <a href="/2017/02/09/记一次kubernetes网络调试/" class="article-date">
-            <time datetime="2017-02-09T23:39:23.000Z" itemprop="datePublished">2017-02-09</time>
-        </a>
-    </div>
-
-		
-
-                
-    <div class="article-tag">
-        <i class="fa fa-tag"></i>
-        <a class="tag-link" href="/tags/iptables/">iptables</a>, <a class="tag-link" href="/tags/kubernetes/">kubernetes</a>
-    </div>
-
-            </div>
         
         
         <div class="article-entry" itemprop="articleBody">
-            <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：<br><a id="more"></a><br><img src="/images/kubernetes-service.png"></p>
-<ul>
-<li>nginx作为反向代理监听互联网的请求</li>
-<li>对于leetcode.com的访问转发到kubernetes service</li>
-<li>通过label将service与pod绑定，并在service层作负载均衡</li>
-</ul>
-<p>两个pod分布在不同的机器上，其中pod2所在的机器是为了这次的扩容而部署的。关于如何在已有的集群中增加机器，可以参考我<a href="http://xidui.github.io/2017/01/03/手动在kubernetes集群中添加节点/">这篇文章</a>。当然手动部署可能不是最方便的，如果想要自动部署，可以去看看关于<a href="https://kubernetes.io/docs/getting-started-guides/kubeadm/" target="_blank" rel="noopener">kubeadm</a>的相关资料。</p>
-<h3 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h3><p>当一切准备就绪并导流的时候，旧机器的log在不断地输出，说明工作正常，但新机器的日志文件没有滚动，请求一个也没有进来。检查pod的状态，发现它是一切正常的:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># kubectl get pod --namespace=noj</span></span><br><span class="line">NAME           READY     STATUS    RESTARTS   AGE</span><br><span class="line">noj-rc-i3aca   1/1       Running   0          2h</span><br><span class="line">noj-rc-vgb5e   1/1       Running   0          2h</span><br></pre></td></tr></table></figure></p>
-<p>而且，<code>noj-rc-vgb5e</code>这个pod也是顺利被分配到slave2并启动的。这说明<code>kubelet</code>和<code>kube-proxy</code>的配置没有问题，不然是无法收到master机器的调度请求从而部署pod的。因此首先怀疑<strong>两台机器网络状态是否不一致</strong>。<br>在slave2执行<code>systemctl stop firewalld</code>，请求陆陆续续地进来了。因此应该就是iptables配置的问题，某些规则配置错误，导致网络包被reject了。在debug之前先贴上网络结构图方便之后说明。</p>
-<img src="/images/networking.png">
-<h3 id="调试纠错"><a href="#调试纠错" class="headerlink" title="调试纠错"></a>调试纠错</h3><h4 id="step1"><a href="#step1" class="headerlink" title="step1"></a>step1</h4><p>由于kubernetes集群的iptables规则较为复杂，执行<code>iptables -L -n</code>和<code>iptables -L -n -t nat</code>发现有上百条记录，对于一条条比对的任务就望而却步了，粗略看了一下一模一样，就连行数都是一样的。<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]# iptables -L -n | grep -c ''</span><br><span class="line">135</span><br><span class="line">[root@kubernetes-slave-2 ~]# iptables -L -n -t nat| grep -c ''</span><br><span class="line">174</span><br></pre></td></tr></table></figure></p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">[root@kubernetes-slave-1]#</span><span class="bash"> iptables -L -n | grep -c <span class="string">''</span></span></span><br><span class="line">135</span><br><span class="line"><span class="meta">[root@kubernetes-slave-1]#</span><span class="bash"> iptables -L -n -t nat| grep -c <span class="string">''</span></span></span><br><span class="line">174</span><br></pre></td></tr></table></figure>
-<p><em>这就让我犯难了</em>：既然两台机器的网络环境都一模一样，为什么请求一台能进去，一台进不去呢？</p>
-<h4 id="step2"><a href="#step2" class="headerlink" title="step2"></a>step2</h4><p>我们现在知道的症状有限，还有没有别的可供参考呢？找找其它症状吧。<br>进入slave1的container：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-1]<span class="comment"># kubectl exec -it noj-rc-i3aca bash --namespace=noj</span></span><br><span class="line">root@noj-rc-i3aca:/leetcode/noj<span class="comment"># nslookup google.com</span></span><br><span class="line">Server:         10.254.0.10</span><br><span class="line">Address:        10.254.0.10<span class="comment">#53</span></span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">Name:   google.com</span><br><span class="line">Address: 216.58.194.174</span><br></pre></td></tr></table></figure></p>
-<p>进入slave2的container（其中nslookup的过程花了很久，大约2-3秒）：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2]<span class="comment"># kubectl exec -it noj-rc-vgb5e bash --namespace=noj</span></span><br><span class="line">root@noj-rc-vgb5e:/leetcode/noj<span class="comment"># nslookup google.com</span></span><br><span class="line">Server:         8.8.8.8</span><br><span class="line">Address:        8.8.8.8<span class="comment">#53</span></span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">Name:   google.com</span><br><span class="line">Address: 216.58.194.174</span><br></pre></td></tr></table></figure></p>
-<p>在kubernetes集群中，我部署了dns服务在<code>10.254.0.10</code>，slave2确实将<code>10.254.0.10</code>配置为首选dns服务器，但是slave2并没有使用它或者访问不到它。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@noj-rc-vgb5e:/leetcode/noj<span class="comment"># cat /etc/resolv.conf</span></span><br><span class="line">search noj.svc.cluster.local svc.cluster.local cluster.local</span><br><span class="line">nameserver 10.254.0.10</span><br><span class="line">nameserver 8.8.8.8</span><br><span class="line">nameserver 8.8.4.4</span><br><span class="line">options ndots:5</span><br></pre></td></tr></table></figure></p>
-<p>这也就解释了为什么在slave2执行nslookup那么慢的原因：<code>10.254.0.10</code>失败了，再选择<code>8.8.8.8</code>。</p>
-<h4 id="step3"><a href="#step3" class="headerlink" title="step3"></a>step3</h4><p>slave2访问集群内部服务失败，它是不是也无法跨机器ping通docker呢。</p>
-<p>在slave1上ping master<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-1]<span class="comment"># ping 172.16.92.1</span></span><br><span class="line">PING 172.16.92.1 (172.16.92.1) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.16.92.1: icmp_seq=1 ttl=64 time=2.71 ms</span><br><span class="line">64 bytes from 172.16.92.1: icmp_seq=2 ttl=64 time=2.18 ms</span><br></pre></td></tr></table></figure></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># ping 172.16.92.1</span></span><br><span class="line">PING 172.16.92.1 (172.16.92.1) 56(84) bytes of data.</span><br><span class="line">--- 172.16.92.1 ping statistics ---</span><br><span class="line">5 packets transmitted, 0 received, 100% packet loss, time 3999ms</span><br></pre></td></tr></table></figure>
-<h4 id="step4"><a href="#step4" class="headerlink" title="step4"></a>step4</h4><p>既然关闭防火墙是可以服务的，那我们一步步在防火墙中添加ACCEPT记录，看看究竟是哪条记录导致网络包被REJECT了。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># iptables -I INPUT 1 -j ACCEPT</span></span><br></pre></td></tr></table></figure></p>
-<p>非常幸运，在INPUT链添加ACCEPT规则后，一切请求马上都正常了，包括step3中的ping也可以正常服务了。</p>
-<p>删掉刚才添加的ACCEPT规则，并在iptables中打日志，看看<code>ping 172.168.92.1</code>的时候会有那些日志进来：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># iptables -I INPUT 1 -j LOG</span></span><br></pre></td></tr></table></figure></p>
-<p><code>tail -f /var/log/messages</code>，我发现有以下的包在slave1是可以顺利通过防火墙的，但在slave2被拒绝了:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Feb 11 08:18:03 kubernetes-slave-2 kernel: IN=eth0 OUT= MAC=5a:e9:b7:d6:88:8d:30:7c:5e:91:9c:30:08:00 SRC=&lt;ip of master&gt; DST=&lt;ip of slave2&gt; LEN=134 TOS=0x00 PREC=0x00 TTL=60 ID=16426 PROTO=UDP SPT=56731 DPT=8472 LEN=114</span><br><span class="line">Feb 11 08:18:04 kubernetes-slave-2 kernel: IN=eth0 OUT= MAC=5a:e9:b7:d6:88:8d:30:7c:5e:91:9c:30:08:00 SRC=&lt;ip of master&gt; DST=&lt;ip of slave2&gt; LEN=134 TOS=0x00 PREC=0x00 TTL=60 ID=16426 PROTO=UDP SPT=56731 DPT=8472 LEN=114</span><br><span class="line">Feb 11 08:18:05 kubernetes-slave-2 kernel: IN=eth0 OUT= MAC=5a:e9:b7:d6:88:8d:30:7c:5e:91:9c:30:08:00 SRC=&lt;ip of master&gt; DST=&lt;ip of slave2&gt; LEN=134 TOS=0x00 PREC=0x00 TTL=60 ID=16426 PROTO=UDP SPT=56731 DPT=8472 LEN=114</span><br></pre></td></tr></table></figure></p>
-<p>注意到8472端口，这个端口是vxlan用于广播数据报文用的端口，vxlan是flannel底层用于跨机器通信用的。我明明记得配置kubernetes机器的时候对这个端口开了白名单呀:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-1 ~]# iptables -L -n | grep 8472</span><br><span class="line">ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:8472 ctstate NEW</span><br><span class="line"></span><br><span class="line">[root@kubernetes-slave-2 ~]# iptables -L -n | grep 8472</span><br><span class="line">ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:8472 ctstate NEW</span><br></pre></td></tr></table></figure></p>
-<p>这个时候我终于发现问题了，当时给8472开的白名单误写成了tcp，然而vxlan使用的是udp！！！<br>最后，两条命令解决问题，终于一切都正常了！<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=8472/udp --permanent</span><br><span class="line">systemctl restart firewalld</span><br></pre></td></tr></table></figure></p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>一个非常小的错误，导致这一通排查花了我一整天的时间，还是应该多仔细啊。在排查的过程中，其实我也走了一些弯路，刚开始我就确定是网络配置的问题，step2和step3其实都是没有必要的。如果刚开始就直接在iptables中打日志，就可以更快的发现这个问题。因为事后证明新发现的症状对于最后的debug并没有太大的帮助。</p>
+            <p><img src="/images/about_me.jpg" width="200px" style="float: right; margin-bottom: 20px;margin-left: 20px"></p>
+<p>大家好，我叫王越，网名xidui，目前生活在美国。毕业于 <strong>卡内基梅陇大学</strong> 软件工程硕士项目，马上入职 <strong>谷歌</strong>。</p>
+<p>曾就职于 <strong>腾讯IEG</strong>，<strong>LeetCode</strong>，如有兴趣可以前往我的领英链接查看。</p>
+<p>本博客将会不定期的记录日常的学习收获已经生活中的琐碎。由于博主很懒，所以并没有一个固定的更新频率。</p>
 
         </div>
         <footer class="article-footer">
@@ -226,7 +172,7 @@ var _hmt = _hmt || [];
 
 
 
-    <a data-url="http://xidui.github.io/2017/02/09/记一次kubernetes网络调试/" data-id="cjq40shha0020lurpzykvnf3x" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://xidui.github.io/about/index.html" data-id="cjq40shgf0001lurpk1la7abs" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         $('body').on('click', function() {
@@ -336,19 +282,6 @@ var _hmt = _hmt || [];
             
         </ul>
     </div>
-    
-        
-<nav id="article-nav">
-    
-    
-        <a href="/2017/02/06/在kubernetes中配置skydns/" id="article-nav-older" class="article-nav-link-wrap">
-        <strong class="article-nav-caption">older</strong>
-        <p class="article-nav-title">在kubernetes中配置skydns</p>
-        <i class="icon fa fa-chevron-left" id="icon-chevron-left"></i>
-        </a>
-    
-</nav>
-
     
     <div class="widgets-container">
         
@@ -502,7 +435,7 @@ var _hmt = _hmt || [];
     var disqus_shortname = 'xidui-is-very-lazy';
     
     
-    var disqus_url = 'http://xidui.github.io/2017/02/09/记一次kubernetes网络调试/';
+    var disqus_url = 'http://xidui.github.io/about/index.html';
     
     (function() {
     var dsq = document.createElement('script');
