@@ -10,10 +10,10 @@
     
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     
-        <meta name="keywords" content="并发,python,coroutine,tornado,asyncio,gevent">
+        <meta name="keywords" content="python,并发,coroutine,tornado,asyncio,gevent">
     
     <meta name="description" content="前言python中的异步协程框架有很多，比如 tornado, gevent, asyncio, twisted 等。协程带来的是低消耗的并发，在等待IO事件的时候可以把控制权交给其它的协程，这个是它并发能力的保障。但是光有并发还是不够的，高并发并不能保证低延迟，因为一个业务逻辑的流程可能包含多个异步IO的请求，如果这些异步IO的请求是一个一个逐步执行的，虽然server的吞吐量还是很高，但是每个">
-<meta name="keywords" content="并发,python,coroutine,tornado,asyncio,gevent">
+<meta name="keywords" content="python,并发,coroutine,tornado,asyncio,gevent">
 <meta property="og:type" content="article">
 <meta property="og:title" content="python异步框架中协程之间的并行">
 <meta property="og:url" content="http://xidui.github.io/2015/11/11/python异步框架协程之间的并行/index.html">
@@ -219,7 +219,7 @@ var _hmt = _hmt || [];
 
 
 
-    <a data-url="http://xidui.github.io/2015/11/11/python异步框架协程之间的并行/" data-id="cjq3zl4u4004i3xrpawbpj8v1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://xidui.github.io/2015/11/11/python异步框架协程之间的并行/" data-id="cjq401zwr004kawrpmbzd0b69" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         $('body').on('click', function() {
@@ -302,6 +302,14 @@ var _hmt = _hmt || [];
     <div class="sidebar-top">
         <p>follow:</p>
         <ul class="social-links">
+            
+                
+                <li>
+                    <a class="social-tooltip" title="linkedin" href="https://www.linkedin.com/in/wang-yue/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-linkedin"></i>
+                    </a>
+                </li>
+                
             
                 
                 <li>
