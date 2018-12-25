@@ -6,13 +6,13 @@
     
 
     
-    <title>Tag: kubernetes | xidui is very lazy</title>
+    <title>Category: Tech | xidui is very lazy</title>
     
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     
     <meta property="og:type" content="website">
 <meta property="og:title" content="xidui is very lazy">
-<meta property="og:url" content="http://xidui.github.io/tags/kubernetes/index.html">
+<meta property="og:url" content="http://xidui.github.io/categories/Tech/page/2/index.html">
 <meta property="og:site_name" content="xidui is very lazy">
 <meta property="og:locale" content="en">
 <meta name="twitter:card" content="summary">
@@ -144,7 +144,7 @@ var _hmt = _hmt || [];
                         <div class="main-body-header">
     <h1 class="header">
     
-    <i class="icon fa fa-tag"></i>Tag: <em>kubernetes</em>
+    <i class="icon fa fa-folder-open"></i>Category: <em class="page-title-link">Tech</em>
     </h1>
 </div>
 
@@ -157,7 +157,7 @@ var _hmt = _hmt || [];
         
         <section class="archives-wrap">
             <div class="archive-year-wrap">
-                <a href="/archives/2017" class="archive-year"><i class="icon fa fa-calendar-o"></i>2017</a>
+                <a href="/archives/2015" class="archive-year"><i class="icon fa fa-calendar-o"></i>2015</a>
             </div>
             <div class="archives">
     
@@ -172,17 +172,18 @@ var _hmt = _hmt || [];
             <div class="category">
             <a class="article-category-link" href="/categories/Tech/">Tech</a>
             </div>
-            <div class="date"><time datetime="2017-02-09T23:39:23.000Z" itemprop="datePublished">2017-02-09</time></div>
+            <div class="date"><time datetime="2015-12-10T02:45:23.000Z" itemprop="datePublished">2015-12-09</time></div>
         </div>
         
     
         <h1 class="article-title" itemprop="name">
-        <a href="/2017/02/09/记一次kubernetes网络调试/">记一次kubernetes网络调试</a>
+        <a href="/2015/12/09/谈谈项目重构与测试/">谈谈项目的重构与测试</a>
         </h1>
     
 
         <p class="article-excerpt">
-            背景过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：
+            背景这几个月我开发了公司里的一个restful webservice，起初技术选型的时候是采用了flask框架。虽然flask是一个同步的框架，但是可以配合gevent或者其它方式运行在异步的容器中(测试链接)，效果看上去也还可以，因此就采用了这种方式。
+后面阅读了tornado的源码，也去了解了各种协程框架以及运行的原理。总感觉flask的这种同步方式编程不够好，同时对于这种运行在容器里的模式目前还缺乏了解。但至少现在对于tornado的运行原理有了一定的了解，如果用tornado写的话，是很可控的，而且可以保证运行是高效的。因此就决定把原来基于flask的项目用tornado重构了。
         </p>
     </div>
 </article>
@@ -199,17 +200,17 @@ var _hmt = _hmt || [];
             <div class="category">
             <a class="article-category-link" href="/categories/Tech/">Tech</a>
             </div>
-            <div class="date"><time datetime="2017-02-06T17:08:03.000Z" itemprop="datePublished">2017-02-06</time></div>
+            <div class="date"><time datetime="2015-11-29T01:40:46.000Z" itemprop="datePublished">2015-11-28</time></div>
         </div>
         
     
         <h1 class="article-title" itemprop="name">
-        <a href="/2017/02/06/在kubernetes中配置skydns/">在kubernetes中配置skydns</a>
+        <a href="/2015/11/28/如何让进程后台运行——多种方案整理/">如何让进程后台运行——多种方案整理</a>
         </h1>
     
 
         <p class="article-excerpt">
-            背景kubernetes中的集群发现有两种方式，一种是环境变量，还有一种就是dns服务。对于环境变量，在使用上有一些限制，它依赖于svc和rc的启动顺序: 如果rc先于svc启动，那么pod里面就没有相关svc的环境变量，这种方式违背了kubernetes的理念，即资源之间是解耦的。推荐的方式是使用dns的服务，这篇文章主要关于部署skydns的过程以及其中遇到的问题和采用的方式。
+            前言相信对服务端有所了解的同学对于如何让进程后台运行这个问题都有自己的处理方式，本人零零散散也知道一些方法，但偶尔也会陷入搞混的情况(知其然但不知其所以然，命令就这么用呗，也就不管为什么了)。加上近期有不止一个技术还不错朋友在跟我交流中对于如何处理这个问题产生了一些困惑，我想它可能是一个比较普遍存在的问题，因此打算较为系统地整理一下各种八仙过海的神通，同时也稍微扯一扯一些进程信号的问题。
         </p>
     </div>
 </article>
@@ -230,22 +231,18 @@ var _hmt = _hmt || [];
             <div class="category">
             <a class="article-category-link" href="/categories/Tech/">Tech</a>
             </div>
-            <div class="date"><time datetime="2017-01-04T02:30:30.000Z" itemprop="datePublished">2017-01-03</time></div>
+            <div class="date"><time datetime="2015-11-11T21:20:21.000Z" itemprop="datePublished">2015-11-11</time></div>
         </div>
         
     
         <h1 class="article-title" itemprop="name">
-        <a href="/2017/01/03/手动在kubernetes集群中添加节点/">手动在kubernetes集群中添加minon</a>
+        <a href="/2015/11/11/python异步框架协程之间的并行/">python异步框架中协程之间的并行</a>
         </h1>
     
 
         <p class="article-excerpt">
-            背景去年年中我使用ansible给项目部署了一个小型的kubernetes集群，部署源码可以在这里找到:contrib。随着业务的发展，目前的集群规模很有可能在明年迎来瓶颈，因此需要 扩容.当然可以继续通过之前的contrib去部署，不过有几点担忧：
-
-目前的系统稳定地提供着服务，ansible脚本可能会对集群产生不可逆的影响
-对于contrib的代码不是特别熟悉，不清楚它具体做了哪些步骤，总体来说还是不放心
-
-同时，作为一个system admin，对于集群必须了如指掌才行。因此，在这里做一次演练，手动为已有集群添加节点，增进了解，也为今年的扩容做好准备工作。
+            前言python中的异步协程框架有很多，比如 tornado, gevent, asyncio, twisted 等。协程带来的是低消耗的并发，在等待IO事件的时候可以把控制权交给其它的协程，这个是它并发能力的保障。但是光有并发还是不够的，高并发并不能保证低延迟，因为一个业务逻辑的流程可能包含多个异步IO的请求，如果这些异步IO的请求是一个一个逐步执行的，虽然server的吞吐量还是很高，但是每个请求的延迟就会很大。为了解决这类问题，每个框架都有各自不同的方式，下面我们就来分别看看，它们都是怎么管理互不相关协程之间的并行的。
+如果对于异步IO不了解的朋友，可以先去了解下相关资料：epoll, select, aio等。
         </p>
     </div>
 </article>
@@ -253,15 +250,39 @@ var _hmt = _hmt || [];
 
     
     
+    
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
         
-            </div></div></section>
-        
-        
-        <section class="archives-wrap">
-            <div class="archive-year-wrap">
-                <a href="/archives/2016" class="archive-year"><i class="icon fa fa-calendar-o"></i>2016</a>
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
             </div>
-            <div class="archives">
+            <div class="date"><time datetime="2015-11-04T01:20:12.000Z" itemprop="datePublished">2015-11-03</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/11/03/leetcode212-字典树/">leetcode212_字典树</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            水一篇文章。最近项目里在用字典树配合redis做搜索和字符串匹配，这部分不是我做的，但为了熟悉一下练练手，刷一道关于字典树的题目。纠结要不要把刷leetcode的题目搬上来，想想还是放上来吧，毕竟这题只有16%的通过率。况且字典树这个东西以后还是会经常用得到的，算是给自己以后留个参考吧。
+题目地址
+
+Word Search II
+
+字典树、回溯法我觉得这题主要还是字典树。当然说回溯法也可以，毕竟在搜索的时候根据情况，适时停止，进入下一个分支。不过我觉得更合适的说法是在dfs中增加了条件判断而已。要说最经典的回溯问题，据我近两年的刷题经验来看，当属 八皇后 问题了，八皇后在leetcode中也有。
+        </p>
+    </div>
+</article>
+    
+        </div>
+    
+
+    
     
     
     
@@ -274,26 +295,196 @@ var _hmt = _hmt || [];
             <div class="category">
             <a class="article-category-link" href="/categories/Tech/">Tech</a>
             </div>
-            <div class="date"><time datetime="2016-05-30T18:32:59.000Z" itemprop="datePublished">2016-05-30</time></div>
+            <div class="date"><time datetime="2015-10-30T02:11:11.000Z" itemprop="datePublished">2015-10-29</time></div>
         </div>
         
     
         <h1 class="article-title" itemprop="name">
-        <a href="/2016/05/30/在linode服务器上安装kubernetes集群/">在linode服务器上安装kubernetes集群</a>
+        <a href="/2015/10/29/深入理解python3-4-Asyncio库与Node-js的异步IO机制/">【译】深入理解python3.4中Asyncio库与Node.js的异步IO机制</a>
         </h1>
     
 
         <p class="article-excerpt">
-            前言这篇文章其实主要是记录我在安装kubernetes集群时遇到的坑，然后是如何解决的。关于kubernetes的概念，以及安装kubernetes的详细流程将不在本文涉及。
-问题背景我已经在Digital Ocean成功部署了一个小型的kubernetes集群，包含一个master和一个slave。部署的方式是使用ansible，这里有一个项目可以参考contrib，按照里面的配置配一下，就可以一键部署集群了。
-由于linode机器比DO的机器性价比高一点($40/month这一档前者是4核的CPU，后者只有2核)，所以想把集群迁移到linode上。然而在使用脚本部署的过程中总是报错，查了一下发现kubernetes的flannel网络层插件始终起不来，查看了systemctl的日志，发现flannel无法初始化vxlan的网络，具体症状可以参考这样一个issue。
+            译者：xidui原文: http://sahandsaba.com/understanding-asyncio-node-js-python-3-4.html
+译者前言
+如何用yield以及多路复用机制实现一个基于协程的异步事件框架？
+现有的组件中yield from是如何工作的，值又是如何被传入yield from表达式的？
+在这个yield from之上，是如何在一个线程内实现一个调度机制去调度协程的？
+协程中调用协程的调用栈是如何管理的？
+gevent和tornado是基于greenlet协程库实现的异步事件框架，greenlet和asyncio在协程实现的原理又有什么区别？
+
+去年稍微深入地了解了下nodejs，啃完了 朴灵 的 《深入浅出Node.js》，自己也稍微看了看nodejs的源码，对于它的异步事件机制还是有一个大致的轮廓的。虽然说让自己写一个类似的机制去实现异步事件比较麻烦，但也并不是完全没有思路。
         </p>
     </div>
 </article>
     
 
+    
+    
+    
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-10-13T23:13:03.000Z" itemprop="datePublished">2015-10-13</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/10/13/mongodb集群-一-——搭建/">mongodb集群(一)——搭建</a>
+        </h1>
+    
 
-    </div></div></section>
+        <p class="article-excerpt">
+            1.前言之前有一篇博客是介绍了搭建mongodb的replica set集群的。这次系列将会对mongodb做一个更为详细的介绍，这篇主要讲的是mongodb数据分片集群的搭建。
+分片(sharding)、副本集(replication)与分布式文件系统(比如 hbase)的区别：
+
+副本集集群中的每一个节点的数据都是相同的，有一个primary，1~7个secondary，数据写入primary节点后会同步给所有的备份节点，可以很方便地作读写分离。还有一个可选的arbitary节点，当primary节点宕机后，由arbitary节点从secondary中选出新的primary节点。如果没有arbitary，则由所有secondary节点共同决定下一个primary节点。
+数据分片集群中，每一个数据节点存的数据都是不同的，互作补充。由预先定义的字段或者组合字段作为分片的依据。往集群中新增分片节点，数据库会自动作数据迁移，使得存储负载尽可能平均。（某个节点挂了，部分数据访问不了怎么办，如何作数据的高可用？）
+分布式文件系统是文件系统，数据库是一种定义的数据存储格式。数据库的数据在文件系统中也是以多个文件的形式存储的，而文件就是存储在文件系统中的。
+
+        </p>
+    </div>
+</article>
+    
+        </div>
+    
+
+    
+    
+    
+    
+        <div class="article-row">
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-10-03T05:47:09.000Z" itemprop="datePublished">2015-10-03</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/10/03/期望最大化-EM-算法matlab实现/">期望最大化(EM)算法matlab实现</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            一、前言看了吴军博士的《数学之美》感觉受益颇多，好书！第二版第27章讲的是期望最大化(EM)算法，看完就感觉如醍醐灌顶，而且原理上也不难，趁国庆的机会，把它实现了，加深一下理解。
+EM算法 的范畴很广，之前几章的 最大熵算法、隐含马尔科夫模型的训练算法 都包括在内。用它做一些文本的自收敛分类效果很好，而且运算复杂度也不高，是一个很不错的选择。当然，关于文本的分类，前几章也有介绍一些其它的算法，也可以去参考一下。
+        </p>
+    </div>
+</article>
+    
+
+    
+    
+    
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-09-27T14:07:50.000Z" itemprop="datePublished">2015-09-27</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/09/27/mysql-mongodb性能测试/">mysql mongodb性能测试</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            对mysql和mongodb做一个简单的调研。
+测试环境数据库版本mongodb: 3.0.5 无任何优化，单机测试mysql: 5.6.26 无任何优化，单机测试
+环境CPU: 2.2 GHz Intel Core i7内存: 16G DDR3操作系统: OS X Yosemite 10.10.5python: 3.5.0
+数据库接口驱动mongodb: PyMongo 3.0.3mysql: PyMySQL 0.6.6
+        </p>
+    </div>
+</article>
+    
+        </div>
+    
+
+    
+    
+    
+    
+        <div class="article-row">
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-09-02T19:03:59.000Z" itemprop="datePublished">2015-09-02</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/09/02/浅谈跨域问题/">浅谈跨域问题</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            跨域问题相信不少朋友都遇到过，八仙过海各显神通，解决的方法也有很多种，那我今天也来稍微扯一扯。
+问题重现先用nodejs写一个最简单的web后台12345678910// server.jsvar http = require('http');http.createServer(function (req, res) &#123;  res.writeHead(200, &#123;'Content-Type': 'text/plain'&#125;);  console.log('I have received your request.');  res.end('Hello World\n');&#125;).listen(6022, "0.0.0.0");console.log('Server running at http://0.0.0.0:6022/');
+        </p>
+    </div>
+</article>
+    
+
+    
+    
+    
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-08-24T02:20:29.000Z" itemprop="datePublished">2015-08-23</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/08/23/python-调用C-ctypes库尝试/">python调用C++ —— ctypes库尝试</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            python调用c++有很多种方法，今天我就来整理使用一下python中ctypes模块的用法。
+网上可以找到很多关于ctypes的使用资料，但都不全：1.类型介绍不完整2.只有python传入c++参数3.只有python接收c++返回我就针对以上的问题，作一个比较全面的使用介绍吧。
+使用很简单，各种拼拼凑凑，看代码就可以懂，就不多说了。
+        </p>
+    </div>
+</article>
+    
+        </div>
+    
+
+
+    </div></section>
+
+
+    <nav id="page-nav">
+        <span class="pages">Page 2 of 4</span>
+        <a class="extend prev" rel="prev" href="/categories/Tech/">&laquo;</a><a class="page-number" href="/categories/Tech/">1</a><span class="page-number current">2</span><a class="page-number" href="/categories/Tech/page/3/">3</a><a class="page-number" href="/categories/Tech/page/4/">4</a><a class="extend next" rel="next" href="/categories/Tech/page/3/">&raquo;</a>
+    </nav>
 
 
 

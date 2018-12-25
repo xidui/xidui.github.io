@@ -20,7 +20,7 @@
 <meta property="og:site_name" content="xidui is very lazy">
 <meta property="og:description" content="前言相信对服务端有所了解的同学对于如何让进程后台运行这个问题都有自己的处理方式，本人零零散散也知道一些方法，但偶尔也会陷入搞混的情况(知其然但不知其所以然，命令就这么用呗，也就不管为什么了)。加上近期有不止一个技术还不错朋友在跟我交流中对于如何处理这个问题产生了一些困惑，我想它可能是一个比较普遍存在的问题，因此打算较为系统地整理一下各种八仙过海的神通，同时也稍微扯一扯一些进程信号的问题。">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2016-03-06T08:28:40.000Z">
+<meta property="og:updated_time" content="2018-12-25T16:48:36.917Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="如何让进程后台运行——多种方案整理">
 <meta name="twitter:description" content="前言相信对服务端有所了解的同学对于如何让进程后台运行这个问题都有自己的处理方式，本人零零散散也知道一些方法，但偶尔也会陷入搞混的情况(知其然但不知其所以然，命令就这么用呗，也就不管为什么了)。加上近期有不止一个技术还不错朋友在跟我交流中对于如何处理这个问题产生了一些困惑，我想它可能是一个比较普遍存在的问题，因此打算较为系统地整理一下各种八仙过海的神通，同时也稍微扯一扯一些进程信号的问题。">
@@ -46,6 +46,17 @@
     
     
     
+        <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+    
 
 
 </head>
@@ -61,6 +72,10 @@
                         <a href="/" class="logo"></a>
                     </h1>
                     
+                        <h2 class="subtitle-wrap">
+                            <p class="subtitle">xidui is very lazy</p>
+                        </h2>
+                    
                 </div>
                 <div id="header-inner" class="nav-container">
                     <a id="main-nav-toggle" class="nav-icon fa fa-bars"></a>
@@ -71,8 +86,14 @@
                                     <a class="main-nav-list-link" href="/">Home</a>
                                 </li>
                             
-                                        
-                                    
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/categories/Tech/index.html">Tech</a>
+                                </li>
+                            
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/categories/Life/index.html">Life</a>
+                                </li>
+                            
                                 <li class="main-nav-list-item">
                                     <a class="main-nav-list-link" href="/about/index.html">About</a>
                                 </li>
@@ -130,7 +151,7 @@
                         <div class="main-body-header">
     <h1 class="header">
     
-    uncategorized
+    <a class="page-title-link" href="/categories/Tech/">Tech</a>
     </h1>
 </div>
 
@@ -263,7 +284,7 @@
 
 
 
-    <a data-url="http://xidui.github.io/2015/11/28/如何让进程后台运行——多种方案整理/" data-id="cjq2vxkao0012y4ujbecms56x" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://xidui.github.io/2015/11/28/如何让进程后台运行——多种方案整理/" data-id="cjq3zl4ss001j3xrp6fenspux" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         $('body').on('click', function() {
@@ -399,23 +420,12 @@
     <div class="widget-wrap">
         <h3 class="widget-title">recents</h3>
         <div class="widget">
-            <ul id="recent-post" class="">
+            <ul id="recent-post" class="no-thumbnail">
                 
                     <li>
                         
-                        <div class="item-thumbnail">
-                            <a href="/2017/02/09/记一次kubernetes网络调试/" class="thumbnail">
-    
-    
-        <span style="background-image:url(/images/kubernetes-service.png)" alt="记一次kubernetes网络调试" class="thumbnail-image"></span>
-    
-    
-</a>
-
-                        </div>
-                        
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2017/02/09/记一次kubernetes网络调试/" class="title">记一次kubernetes网络调试</a></p>
                             <p class="item-date"><time datetime="2017-02-09T23:39:23.000Z" itemprop="datePublished">2017-02-09</time></p>
                         </div>
@@ -423,19 +433,8 @@
                 
                     <li>
                         
-                        <div class="item-thumbnail">
-                            <a href="/2017/02/06/在kubernetes中配置skydns/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-    
-</a>
-
-                        </div>
-                        
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2017/02/06/在kubernetes中配置skydns/" class="title">在kubernetes中配置skydns</a></p>
                             <p class="item-date"><time datetime="2017-02-06T17:08:03.000Z" itemprop="datePublished">2017-02-06</time></p>
                         </div>
@@ -443,19 +442,8 @@
                 
                     <li>
                         
-                        <div class="item-thumbnail">
-                            <a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-    
-</a>
-
-                        </div>
-                        
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="title">手动在kubernetes集群中添加minon</a></p>
                             <p class="item-date"><time datetime="2017-01-04T02:30:30.000Z" itemprop="datePublished">2017-01-03</time></p>
                         </div>
@@ -463,19 +451,8 @@
                 
                     <li>
                         
-                        <div class="item-thumbnail">
-                            <a href="/2016/07/13/nginx——map性能测试/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-    
-</a>
-
-                        </div>
-                        
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2016/07/13/nginx——map性能测试/" class="title">nginx中map模块的使用及性能测试</a></p>
                             <p class="item-date"><time datetime="2016-07-13T05:30:58.000Z" itemprop="datePublished">2016-07-13</time></p>
                         </div>
@@ -483,19 +460,8 @@
                 
                     <li>
                         
-                        <div class="item-thumbnail">
-                            <a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="thumbnail">
-    
-    
-        <span style="background-image:url(/images/QQ20160530-0@2x.png)" alt="在linode服务器上安装kubernetes集群" class="thumbnail-image"></span>
-    
-    
-</a>
-
-                        </div>
-                        
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="title">在linode服务器上安装kubernetes集群</a></p>
                             <p class="item-date"><time datetime="2016-05-30T18:32:59.000Z" itemprop="datePublished">2016-05-30</time></p>
                         </div>
@@ -507,6 +473,13 @@
 
             
                 
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">categories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">33</span></li></ul>
+        </div>
+    </div>
+
 
             
                 
@@ -586,7 +559,7 @@
         
     
     <script>
-    var disqus_shortname = 'hexo-theme-hueman';
+    var disqus_shortname = 'xidui-is-very-lazy';
     
     
     var disqus_url = 'http://xidui.github.io/2015/11/28/如何让进程后台运行——多种方案整理/';

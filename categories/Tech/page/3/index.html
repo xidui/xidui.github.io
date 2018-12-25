@@ -6,18 +6,17 @@
     
 
     
-    <title>tags | xidui is very lazy</title>
+    <title>Category: Tech | xidui is very lazy</title>
     
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     
     <meta property="og:type" content="website">
-<meta property="og:title" content="tags">
-<meta property="og:url" content="http://xidui.github.io/tags/index.html">
+<meta property="og:title" content="xidui is very lazy">
+<meta property="og:url" content="http://xidui.github.io/categories/Tech/page/3/index.html">
 <meta property="og:site_name" content="xidui is very lazy">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2016-03-06T08:28:40.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="tags">
+<meta name="twitter:title" content="xidui is very lazy">
     
 
     
@@ -40,6 +39,17 @@
     
     
     
+        <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+    
 
 
 </head>
@@ -55,6 +65,10 @@
                         <a href="/" class="logo"></a>
                     </h1>
                     
+                        <h2 class="subtitle-wrap">
+                            <p class="subtitle">xidui is very lazy</p>
+                        </h2>
+                    
                 </div>
                 <div id="header-inner" class="nav-container">
                     <a id="main-nav-toggle" class="nav-icon fa fa-bars"></a>
@@ -65,8 +79,14 @@
                                     <a class="main-nav-list-link" href="/">Home</a>
                                 </li>
                             
-                                        
-                                    
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/categories/Tech/index.html">Tech</a>
+                                </li>
+                            
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/categories/Life/index.html">Life</a>
+                                </li>
+                            
                                 <li class="main-nav-list-item">
                                     <a class="main-nav-list-link" href="/about/index.html">About</a>
                                 </li>
@@ -124,107 +144,332 @@
                         <div class="main-body-header">
     <h1 class="header">
     
-    <em class="page-title-link" data-url="/tags/index.html">tags</em>
+    <i class="icon fa fa-folder-open"></i>Category: <em class="page-title-link">Tech</em>
     </h1>
 </div>
 
                         <div class="main-body-content">
-                            <article id="page-" class="article article-single article-type-page" itemscope="" itemprop="blogPost">
-    <div class="article-inner">
+                            
+
+    
+    
         
-            <header class="article-header">
-                
+        
+        <section class="archives-wrap">
+            <div class="archive-year-wrap">
+                <a href="/archives/2015" class="archive-year"><i class="icon fa fa-calendar-o"></i>2015</a>
+            </div>
+            <div class="archives">
+    
+    
+    
+        <div class="article-row">
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-08-16T06:14:15.000Z" itemprop="datePublished">2015-08-16</time></div>
+        </div>
+        
     
         <h1 class="article-title" itemprop="name">
-        tags
+        <a href="/2015/08/16/js获取dom元素长宽之坑/">js获取dom元素长宽之坑</a>
         </h1>
     
 
-            </header>
-        
-        
-        
-        <div class="article-entry" itemprop="articleBody">
-            
-        </div>
-        <footer class="article-footer">
-            
-
-
-
-    <a data-url="http://xidui.github.io/tags/index.html" data-id="cjq2vxkcd003my4ujii9xosc1" class="article-share-link"><i class="fa fa-share"></i>Share</a>
-<script>
-    (function ($) {
-        $('body').on('click', function() {
-            $('.article-share-box.on').removeClass('on');
-        }).on('click', '.article-share-link', function(e) {
-            e.stopPropagation();
-
-            var $this = $(this),
-                url = $this.attr('data-url'),
-                encodedUrl = encodeURIComponent(url),
-                id = 'article-share-box-' + $this.attr('data-id'),
-                offset = $this.offset(),
-                box;
-
-            if ($('#' + id).length) {
-                box = $('#' + id);
-
-                if (box.hasClass('on')){
-                    box.removeClass('on');
-                    return;
-                }
-            } else {
-                var html = [
-                    '<div id="' + id + '" class="article-share-box">',
-                        '<input class="article-share-input" value="' + url + '">',
-                        '<div class="article-share-links">',
-                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
-                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
-                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="article-share-pinterest" target="_blank" title="Pinterest"></a>',
-                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="article-share-google" target="_blank" title="Google+"></a>',
-                        '</div>',
-                    '</div>'
-                ].join('');
-
-              box = $(html);
-
-              $('body').append(box);
-            }
-
-            $('.article-share-box.on').hide();
-
-            box.css({
-                top: offset.top + 25,
-                left: offset.left
-            }).addClass('on');
-
-        }).on('click', '.article-share-box', function (e) {
-            e.stopPropagation();
-        }).on('click', '.article-share-box-input', function () {
-            $(this).select();
-        }).on('click', '.article-share-box-link', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
-        });
-    })(jQuery);
-</script>
-
-        </footer>
+        <p class="article-excerpt">
+            此坑消耗我好久时间，mark一下。
+1.需求描述最近项目需要，要做一个根据鼠标事件位置显示popover的功能效果。要在鼠标点击位置之上，居中显示一个template的div，因此我需要获得这个div的长宽。
+        </p>
     </div>
 </article>
-
-    <section id="comments">
     
+
+    
+    
+    
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
         
-    <div id="disqus_thread">
-        <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-08-09T19:18:45.000Z" itemprop="datePublished">2015-08-09</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/08/09/threadpool-in-python/">threadpool in python</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            用python实现了一个简易的线程池对于线程池的不用应用场景对如下几个feature作了分类1.按工作总量分
+
+工作总量已知：  
+需要计算的工作在threadpool启动之前就已经定了，对于threadpool只需要指定线程数量就好了,此类threadpool的工作流程如下，在启动前设置好线程池的大小，分割好子工作放入workers列表中，每个线程每次循环从列表中取出一个工作去做，如果列表已空，该线程退出。
+这类线程池是最容易实现的一种，只需用一个互斥锁对workers队列做一个互斥访问即可
+        </p>
     </div>
+</article>
+    
+        </div>
+    
 
     
-    </section>
+    
+    
+    
+        <div class="article-row">
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-08-06T15:16:23.000Z" itemprop="datePublished">2015-08-06</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/08/06/play_markdown/">play with Markdown</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            标题
+一级标题二级标题三级标题四级标题五级标题六级标题大标题
+        </p>
+    </div>
+</article>
+    
+
+    
+    
+    
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-06-20T20:34:26.000Z" itemprop="datePublished">2015-06-20</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/06/20/nodejs-work-in-cluster/">nodejs work in cluster</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            nodejs小练习直接上源码，ps(他的集群可以共享连接，共享端口，这点很赞)
+        </p>
+    </div>
+</article>
+    
+        </div>
+    
+
+    
+    
+    
+    
+        <div class="article-row">
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-06-05T00:22:53.000Z" itemprop="datePublished">2015-06-04</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/06/04/Nodejs-豆瓣自动顶贴工具/">Nodejs 豆瓣自动顶贴工具</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            应朋友需求，帮他写一个这样的工具，时间挺久了，出于各方面自身及其它的原因，一直没有能够帮他去做，也挺内疚的。这次辞职了，有几天时间，从今天起，打算帮他做一下，期间的困难和突破会持续更新在这篇文章里面，看看自己会花多久。
+刚上来就给我出了一个题:
+        </p>
+    </div>
+</article>
+    
+
+    
+    
+    
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-06-02T00:29:14.000Z" itemprop="datePublished">2015-06-01</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/06/01/mongodb-构建-replset-实现高可用/">mongodb 构建 replset 实现高可用</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            上周遇到了digital ocean服务器厂商主机崩溃的事情。当时我只是单点部署了mongodb，数据全在美国服务器。这下直接导致数据库不能用，如果主机就此起不来或者是其它原因导致数据丢失的话，哭也来不及了。为了防止下次遇到类似的事情，决定为数据库部署一个副本集架构（replica set）
+        </p>
+    </div>
+</article>
+    
+        </div>
+    
+
+    
+    
+    
+    
+        <div class="article-row">
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-05-25T00:37:04.000Z" itemprop="datePublished">2015-05-24</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/05/24/next-permutation/">next_permutation</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            产生一个数列的全排列，自己想了一个实现算法，和stl里面的实现算法一样，具体的思路都在注释中。代码中还实现了一种递归的做法，参考了网上的资料，递归的做法代码简短很多，但可操作性而言，没有next方式好。因为实际应用中需要针对每个permutation作相应的操作。用递归的话需要把操作写在permutation的实现中，耦合性很高。另外，递归的方式受限于系统栈空间的大小，N只能在一定范围内处理。理论上，next的方式N可以无限大。
+        </p>
+    </div>
+</article>
+    
+
+    
+    
+    
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-04-23T23:47:27.000Z" itemprop="datePublished">2015-04-23</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/04/23/c-threadpool-for-ACM/">Just for fun.用线程池并行处理ACM多组输入加快运算速度（对于算法提高不推荐）</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            做一道google code jam的题目来试试看我的线程池构想，看看速度会不会快很多。
+其实这题我的算法并不是最优的，所以才会导致10分钟还出不了答案，要是真在code jam上比赛的话妥妥的跪了。但就算算法不好，我如果充分利用CPU的资源，使用多线程框架，会不会出结果时间快很多呢？试试看吧！
+这个纯粹是玩玩的，如果要提高算法能力的话，不建议这么搞
+code jam 原题地址戳这里注：需要翻墙的哦
+        </p>
+    </div>
+</article>
+    
+        </div>
+    
+
+    
+    
+    
+    
+        <div class="article-row">
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-03-19T23:09:42.000Z" itemprop="datePublished">2015-03-19</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/03/19/nodejs-源码浅析-三-——用户模块编译加载原理/">nodejs 源码浅析(三)——用户模块编译加载原理</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            继上一篇：这篇将会对C++用户模块以及js用户模块的加载流程作一个简单的分析。
+3.js用户模块只要是用户自己写的js模块，都归在这一类，包括通过npm install得到的模块也属于这个部分。在_load()接口中，会首先判断要加载的模块是不是js核心模块，在这里逻辑就不走进去了，而是直接新建一个模块对象，并且把它放进缓存中，以加快下次加载的速度。
+        </p>
+    </div>
+</article>
+    
+
+    
+    
+    
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
+            <div class="date"><time datetime="2015-03-12T22:25:24.000Z" itemprop="datePublished">2015-03-12</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/03/12/nodejs-源码浅析-二-——核心模块编译加载原理/">nodejs 源码浅析(二)——核心模块编译加载原理</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            模块加载原理nodejs中，一共有四种类型的模块，C++核心模块（内建模块），js核心模块，C++用户模块，js用户模块。这部分来分别探讨下这些模块的编译加载流程。问题：1.require、exports、module这些对象用户没有声明过，但用户还是可以直接用require(),exports，这是为什么？2.引入别的模块的流程如何？
+
+1.js核心模块加载原理每个js模块都是一个文件，一个文件一个模块，在js代码中就是一个Module对象。至于那些整个包构成的模块，也是有一个对外的文件，如果没有指定默认是index.js作为出口文件，该文件内部又会使用require去包含其它的文件。
+        </p>
+    </div>
+</article>
+    
+        </div>
+    
+
+
+    </div></section>
+
+
+    <nav id="page-nav">
+        <span class="pages">Page 3 of 4</span>
+        <a class="extend prev" rel="prev" href="/categories/Tech/page/2/">&laquo;</a><a class="page-number" href="/categories/Tech/">1</a><a class="page-number" href="/categories/Tech/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/categories/Tech/page/4/">4</a><a class="extend next" rel="next" href="/categories/Tech/page/4/">&raquo;</a>
+    </nav>
 
 
 
@@ -265,23 +510,12 @@
     <div class="widget-wrap">
         <h3 class="widget-title">recents</h3>
         <div class="widget">
-            <ul id="recent-post" class="">
+            <ul id="recent-post" class="no-thumbnail">
                 
                     <li>
                         
-                        <div class="item-thumbnail">
-                            <a href="/2017/02/09/记一次kubernetes网络调试/" class="thumbnail">
-    
-    
-        <span style="background-image:url(/images/kubernetes-service.png)" alt="记一次kubernetes网络调试" class="thumbnail-image"></span>
-    
-    
-</a>
-
-                        </div>
-                        
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2017/02/09/记一次kubernetes网络调试/" class="title">记一次kubernetes网络调试</a></p>
                             <p class="item-date"><time datetime="2017-02-09T23:39:23.000Z" itemprop="datePublished">2017-02-09</time></p>
                         </div>
@@ -289,19 +523,8 @@
                 
                     <li>
                         
-                        <div class="item-thumbnail">
-                            <a href="/2017/02/06/在kubernetes中配置skydns/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-    
-</a>
-
-                        </div>
-                        
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2017/02/06/在kubernetes中配置skydns/" class="title">在kubernetes中配置skydns</a></p>
                             <p class="item-date"><time datetime="2017-02-06T17:08:03.000Z" itemprop="datePublished">2017-02-06</time></p>
                         </div>
@@ -309,19 +532,8 @@
                 
                     <li>
                         
-                        <div class="item-thumbnail">
-                            <a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-    
-</a>
-
-                        </div>
-                        
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="title">手动在kubernetes集群中添加minon</a></p>
                             <p class="item-date"><time datetime="2017-01-04T02:30:30.000Z" itemprop="datePublished">2017-01-03</time></p>
                         </div>
@@ -329,19 +541,8 @@
                 
                     <li>
                         
-                        <div class="item-thumbnail">
-                            <a href="/2016/07/13/nginx——map性能测试/" class="thumbnail">
-    
-    
-        <span class="thumbnail-image thumbnail-none"></span>
-    
-    
-</a>
-
-                        </div>
-                        
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2016/07/13/nginx——map性能测试/" class="title">nginx中map模块的使用及性能测试</a></p>
                             <p class="item-date"><time datetime="2016-07-13T05:30:58.000Z" itemprop="datePublished">2016-07-13</time></p>
                         </div>
@@ -349,19 +550,8 @@
                 
                     <li>
                         
-                        <div class="item-thumbnail">
-                            <a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="thumbnail">
-    
-    
-        <span style="background-image:url(/images/QQ20160530-0@2x.png)" alt="在linode服务器上安装kubernetes集群" class="thumbnail-image"></span>
-    
-    
-</a>
-
-                        </div>
-                        
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2016/05/30/在linode服务器上安装kubernetes集群/" class="title">在linode服务器上安装kubernetes集群</a></p>
                             <p class="item-date"><time datetime="2016-05-30T18:32:59.000Z" itemprop="datePublished">2016-05-30</time></p>
                         </div>
@@ -373,6 +563,13 @@
 
             
                 
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">categories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">33</span></li></ul>
+        </div>
+    </div>
+
 
             
                 
@@ -452,16 +649,14 @@
         
     
     <script>
-    var disqus_shortname = 'hexo-theme-hueman';
+    var disqus_shortname = 'xidui-is-very-lazy';
     
-    
-    var disqus_url = 'http://xidui.github.io/tags/index.html';
     
     (function() {
     var dsq = document.createElement('script');
     dsq.type = 'text/javascript';
     dsq.async = true;
-    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    dsq.src = '//' + disqus_shortname + '.disqus.com/count.js';
     (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
     })();
     </script>
