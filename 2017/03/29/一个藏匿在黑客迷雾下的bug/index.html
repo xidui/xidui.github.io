@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+
+    
+
+    
+    <title>一个隐藏在黑客迷雾下的bug——记一次黑客攻防 | xidui is very lazy</title>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+        <meta name="keywords" content="mysql,hacker,网络攻防">
+    
+    <meta name="description" content="前言细细回想这几周经历的问题以及过程，还是真是挺有趣的，迫不及待地希望整理一下总结给各位看官。关于文章的标题，如何既能吸引读者，又能避免标题党的嫌疑，着实让我斟酌了一番，后来就定了在坐看到的这个版本，个人觉得没毛病~ 让我们进入正题">
+<meta name="keywords" content="mysql,hacker,网络攻防">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一个隐藏在黑客迷雾下的bug——记一次黑客攻防">
+<meta property="og:url" content="http://xidui.github.io/2017/03/29/一个藏匿在黑客迷雾下的bug/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="前言细细回想这几周经历的问题以及过程，还是真是挺有趣的，迫不及待地希望整理一下总结给各位看官。关于文章的标题，如何既能吸引读者，又能避免标题党的嫌疑，着实让我斟酌了一番，后来就定了在坐看到的这个版本，个人觉得没毛病~ 让我们进入正题">
+<meta property="og:locale" content="en">
+<meta property="og:image" content="http://xidui.github.io/images/hacker-email.png">
+<meta property="og:updated_time" content="2018-12-29T02:20:06.782Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="一个隐藏在黑客迷雾下的bug——记一次黑客攻防">
+<meta name="twitter:description" content="前言细细回想这几周经历的问题以及过程，还是真是挺有趣的，迫不及待地希望整理一下总结给各位看官。关于文章的标题，如何既能吸引读者，又能避免标题党的嫌疑，着实让我斟酌了一番，后来就定了在坐看到的这个版本，个人觉得没毛病~ 让我们进入正题">
+<meta name="twitter:image" content="http://xidui.github.io/images/hacker-email.png">
+    
+
+    
+
+    
+
+    <link rel="stylesheet" href="/libs/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/libs/titillium-web/styles.css">
+    <link rel="stylesheet" href="/libs/source-code-pro/styles.css">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="/libs/jquery/3.3.1/jquery.min.js"></script>
+    
+    
+        <link rel="stylesheet" href="/libs/lightgallery/css/lightgallery.min.css">
+    
+    
+        <link rel="stylesheet" href="/libs/justified-gallery/justifiedGallery.min.css">
+    
+    
+    
+        <script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+    
+
+
+</head>
+</html>
+<body>
+    <div id="wrap">
+        <header id="header">
+    <div id="header-outer" class="outer">
+        <div class="container">
+            <div class="container-inner">
+                <div id="header-title">
+                    <h1 class="logo-wrap">
+                        <a href="/" class="logo"></a>
+                    </h1>
+                    
+                        <h2 class="subtitle-wrap">
+                            <p class="subtitle">xidui is very lazy</p>
+                        </h2>
+                    
+                </div>
+                <div id="header-inner" class="nav-container">
+                    <a id="main-nav-toggle" class="nav-icon fa fa-bars"></a>
+                    <div class="nav-container-inner">
+                        <ul id="main-nav">
+                            
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/">Home</a>
+                                </li>
+                            
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/categories/Tech/index.html">Tech</a>
+                                </li>
+                            
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/categories/Life/index.html">Life</a>
+                                </li>
+                            
+                                <li class="main-nav-list-item">
+                                    <a class="main-nav-list-link" href="/about/index.html">About</a>
+                                </li>
+                            
+                        </ul>
+                        <nav id="sub-nav">
+                            <div id="search-form-wrap">
+
+    <form class="search-form">
+        <input type="text" class="ins-search-input search-form-input" placeholder="Search">
+        <button type="submit" class="search-form-submit"></button>
+    </form>
+    <div class="ins-search">
+    <div class="ins-search-mask"></div>
+    <div class="ins-search-container">
+        <div class="ins-input-wrapper">
+            <input type="text" class="ins-search-input" placeholder="Type something...">
+            <span class="ins-close ins-selectable"><i class="fa fa-times-circle"></i></span>
+        </div>
+        <div class="ins-section-wrapper">
+            <div class="ins-section-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+<script src="/js/insight.js"></script>
+
+</div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+        <div class="container">
+            <div class="main-body container-inner">
+                <div class="main-body-inner">
+                    <section id="main">
+                        <div class="main-body-header">
+    <h1 class="header">
+    
+    uncategorized
+    </h1>
+</div>
+
+                        <div class="main-body-content">
+                            <article id="post-一个藏匿在黑客迷雾下的bug" class="article article-single article-type-post" itemscope="" itemprop="blogPost">
+    <div class="article-inner">
+        
+            <header class="article-header">
+                
+    
+        <h1 class="article-title" itemprop="name">
+        一个隐藏在黑客迷雾下的bug——记一次黑客攻防
+        </h1>
+    
+
+            </header>
+        
+        
+            <div class="article-meta">
+                
+    <div class="article-date">
+        <a href="/2017/03/29/一个藏匿在黑客迷雾下的bug/" class="article-date">
+            <time datetime="2017-03-30T01:28:52.000Z" itemprop="datePublished">2017-03-29</time>
+        </a>
+    </div>
+
+		
+
+                
+    <div class="article-tag">
+        <i class="fa fa-tag"></i>
+        <a class="tag-link" href="/tags/hacker/">hacker</a>, <a class="tag-link" href="/tags/mysql/">mysql</a>, <a class="tag-link" href="/tags/网络攻防/">网络攻防</a>
+    </div>
+
+            </div>
+        
+        
+        <div class="article-entry" itemprop="articleBody">
+            <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>细细回想这几周经历的问题以及过程，还是真是挺有趣的，迫不及待地希望整理一下总结给各位看官。<br>关于文章的标题，如何既能吸引读者，又能避免标题党的嫌疑，着实让我斟酌了一番，后来就定了在坐看到的这个版本，个人觉得没毛病~</p>
+<p>让我们进入正题</p>
+<a id="more"></a>
+<h3 id="阶段一"><a href="#阶段一" class="headerlink" title="阶段一"></a>阶段一</h3><h4 id="3月10日"><a href="#3月10日" class="headerlink" title="3月10日"></a>3月10日</h4><p>leetcode完成主数据库迁移，一步步往分布式架构扩展</p>
+<h4 id="3月15日"><a href="#3月15日" class="headerlink" title="3月15日"></a>3月15日</h4><p>收到了一封黑客的邮件，说发现了系统漏洞，并勒索<br><img src="/images/hacker-email.png"></p>
+<h4 id="3月17日中午"><a href="#3月17日中午" class="headerlink" title="3月17日中午"></a>3月17日中午</h4><p>发现user ranking功能失效<br>经检查，是因为我们迁移了主数据库的原因。老数据库所在的机器有一个daily job每天自动更新用户排名。由于新数据库机器的ip不一样，导致脚本过去7天都没有正常工作。于是修改了配置，继续投入使用。</p>
+<h4 id="3月17日下午5点"><a href="#3月17日下午5点" class="headerlink" title="3月17日下午5点"></a>3月17日下午5点</h4><p>不少用户在twitter抱怨无法登陆，我自己也试了一下，确实无法登陆。但是除了登录api，其它所有的api都没有问题，已经登陆的用户也都能正常做题。<br><img src="/images/user-complaint-1.png"><br><img src="/images/user-complaint-2.png"><br><img src="/images/user-complaint-3.png"><br>这不禁让我们想到了2天前收到的黑客邮件，怀疑黑客正在攻击。于是开始检查各种系统参数和日志。检查到旧的数据库所在机器，有一个很奇怪的参数，发现mysqld进程的cpu占用率将近100%，明明这个旧的mysql已经弃用了，到底是谁在里面呢？登录mysql去一探究竟：<br><img src="/images/hacker-mysql-info.png"><br>不断刷新发现这个用户执行的sql语句由comment_id一条条进行累加，断定有人在 <strong>恶意拖库</strong>。</p>
+<p>为了安全起见，在排查前，我们决定 <strong>关闭nginx，关闭整个网站</strong>。</p>
+<p>这个mysql账户是我们旧的wordpress后台配置的，这个网站(<a href="https://article.leetcode.com)是我们之前用过的子站点，现在也已经弃用了，为了让以前的链接依然可以工作，我们并没有关闭这个站点。" target="_blank" rel="noopener">https://article.leetcode.com)是我们之前用过的子站点，现在也已经弃用了，为了让以前的链接依然可以工作，我们并没有关闭这个站点。</a></p>
+<p>排查逻辑：</p>
+<ol>
+<li>mysql账户的登录权限只有localhost，排除远程登录执行sql的可能</li>
+<li>mysql账户的密码只配置在本机，服务器并没有开放root登录权限，sudo账户的密码又极其复杂，排除暴力破解服务器密码的可能</li>
+<li>通过服务器登录记录(last 命令)，并没有发现可疑ip<br>因此，断定这些sql只能是通过wordpress代码在执行。然而，wordpress并没有开放任何一个api可以去通过id遍历某张表。只能是 <strong>sql注入</strong>！！！</li>
+</ol>
+<p>经查，确实是sql注入。这是由某个过时的wordpress插件带来的问题，网上也有针对这个bug一模一样的sql注入流程，有兴趣的读者可以<a href="http://seclists.org/fulldisclosure/2014/Mar/399" target="_blank" rel="noopener">戳这里</a>看看。</p>
+<p>定位问题后，我们关闭了<code>article.leetcode.com</code>，并启动网站，当天用户无法登陆的问题消失了。</p>
+<h4 id="安全性分析"><a href="#安全性分析" class="headerlink" title="安全性分析"></a>安全性分析</h4><ol>
+<li>由于我们的服务器密码并没有泄露，不需要更换服务器和账户</li>
+<li>被拖的库只是弃用的db中弃用的表，没有什么敏感信息</li>
+<li>即使主库被攻破，用户密码是经过hash存储的，攻击者并不能直接获益</li>
+<li><strong>由于无法获得sql执行记录，不知道在这张表被拖库前，黑客还做了什么其他的事情，这点尚有担忧</strong></li>
+</ol>
+<p>总体来说，这次被攻击对网站带来的损失不大，但也让我们一身冷汗。</p>
+<h3 id="阶段二"><a href="#阶段二" class="headerlink" title="阶段二"></a>阶段二</h3><p>如果这件事情就这么结束了，那就再好不过了。然而，用户无法登陆的问题，在后面的几天持续出现，而且每天都会完整持续1小时以上，不禁让我们陷入沉思。莫非黑客还在？但是我们不管怎么找都没有发现什么蛛丝马迹，看着每天用户在论坛抱怨，感觉心急如焚，但又不知道该如何是好，哎！</p>
+<h4 id="3月20日-3月24日"><a href="#3月20日-3月24日" class="headerlink" title="3月20日~3月24日"></a>3月20日~3月24日</h4><p>每天我们都会监控用户登录失败的情况，然后在持续登录失败的时段内，发现了如下规律：</p>
+<ol>
+<li>网站请求数量并没有指数级的增长<br>不光没有指数级，基本如同往常。这点排除了 <strong>DDOS攻击</strong> 的可能。</li>
+<li>数据库的CPU占用并没有明显增加<br>说明并不是过大的数据库负载导致了响应变慢。同时，其它接口的响应速度都很快，验证了这个推断。</li>
+<li>数据库的processlist有不少user表的update记录阻塞<img src="/images/hacker-mysql-lock-1.png">
+用户登陆的时候会触发数据库写操作，更新上次登录的时间。这些简单的update语句持续阻塞，只能说明一个原因，表单记录被其它 <strong>transaction</strong> 锁住了</li>
+<li>通过<code>show status like &#39;%lock%&#39;</code>发现锁的时间不断增长<img src="/images/hacker-mysql-lock-2.png"></li>
+<li>通过<code>show engine innodb status</code>发现了一堆锁的记录，而且在不断地变多<img src="/images/hacker-mysql-lock-3.png">
+</li>
+</ol>
+<p>果然是锁的问题。但是，到底是谁，是什么操作导致了这么多锁？谁会锁定user表？还是没有任何头绪。</p>
+<h4 id="3月25日下午5点"><a href="#3月25日下午5点" class="headerlink" title="3月25日下午5点"></a>3月25日下午5点</h4><p>网站一如既往地登录超时，在外面参加聚会的我不得不拿出电脑，继续排查(今后若是有聚会，各位朋友请包容我这随身携带笔记本的习惯~)。这个时候，我在<a href="https://newrelic.com/" target="_blank" rel="noopener">new relic</a>监控发现了一个值得关注的信息:<br><img src="/images/hacker-new-relic.png"><br>网站出现登录超时的情况是有迹可循的，每天固定在同一个时间出现一次。难道黑客攻击还会有一个定时任务吗，而且都是攻击一小时左右，显然不太可能。莫非这是一个我们自己的定时任务？</p>
+<p>突然想到了我们的 <strong>user ranking脚本</strong>，而且每天发生登录超时的时候正好是脚本定时执行的时候！！！这简直是突破性的信息，因为如果真是这个脚本造成的话，那我们就排除了黑客在恶意登录用户账户的可能。</p>
+<p><strong>这个时候又一个新的问题来了</strong><br>user ranking脚本只更新user_ranking这张表，为什么会锁住user表导致无法登录呢？而且它只锁了user表，网站的其它任何操作都能够顺利执行，已登录用户的做题完全不受影响。</p>
+<p>因为还在聚会，也确定没有什么大问题，mark了一下以后，留待第二天继续检查。</p>
+<h4 id="3月27日下午5点"><a href="#3月27日下午5点" class="headerlink" title="3月27日下午5点"></a>3月27日下午5点</h4><p>登录失败的情况准时出现了，我马上kill掉了user ranking定时任务。登录失败的情况瞬间好转！！！自此，基本已经确定是该脚本导致的问题。这时，问题只剩一个了：<strong>为什么更新user ranking表的时候，会锁住user表？</strong></p>
+<h4 id="3月28日"><a href="#3月28日" class="headerlink" title="3月28日"></a>3月28日</h4><p>定位到问题之后，我在本地测试环境也重现了这个问题，这大大降低了调试的难度，不需要去线上调试了！<br>同时，查阅了各种mysql lock的文档，试图了解数据库何时会产生锁，何时会释放锁。同时仔细阅读了user ranking脚本，下面截取的某个值得怀疑的代码段(考虑到网站的隐私，我把字段和表格改了名字)：<br><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> index, (user_id, ac_count) <span class="keyword">in</span> enumerate(sort_list):</span><br><span class="line">    <span class="keyword">if</span> index % <span class="number">1000</span> == <span class="number">0</span>:</span><br><span class="line">         <span class="keyword">print</span> <span class="string">"write query: "</span>, index</span><br><span class="line">    cur.execute(<span class="string">'''</span></span><br><span class="line"><span class="string">    INSERT INTO user_ranking (user_id, ranking)</span></span><br><span class="line"><span class="string">    VALUES (%d, %d)</span></span><br><span class="line"><span class="string">    ON DUPLICATE KEY UPDATE</span></span><br><span class="line"><span class="string">    ranking = VALUES(ranking)</span></span><br><span class="line"><span class="string">    '''</span> % (user_id, index + <span class="number">1</span>))</span><br><span class="line">con.commit()</span><br></pre></td></tr></table></figure></p>
+<ol>
+<li><p>commit操作为什么要放在最外面呢？<br>测试环境尝试了一下，如果把commit操作放在for循环里面，登录失败的情况就不会出现。同时，数据库里的lock数量和lock时间并不会增长。果然，<strong>数据库的transaction要通过commit才能结束，然后才能释放它所占有的锁</strong>。</p>
+</li>
+<li><p>user_ranking表和user表之间是通过user_id作为外键的，莫非？<br>手动去掉了这个外键的限制，我发现即使把上一步的commit操作放在for循环外面，也不会导致登录失败。看来，<strong>transaction在更新一条记录的时候，不仅会锁住相应记录本身，还会通过外键把其它表的相应行也一起锁住</strong></p>
+</li>
+</ol>
+<p>自此，这个问题终于浮出了水面！原来是这个历史遗留脚本的一个小错误，导致了这个莫名其妙的登录失败问题。解决的办法很简单，把commit那一行，挪入for循环。如果考虑transaction提交次数太频繁，可以每隔一定数量sql后，再执行commit。</p>
+<p><strong>那么问题来了</strong><br>挖掘机哪家强？当然不是这个问题~</p>
+<p>为什么这个登录失败的现象在数据库迁移之前没有发生，而迁移之后发生了呢？(略有经验的)我想想就得出了结论(前文也有所提及)，user ranking脚本之前是和数据库跑在同一台机器的，而迁移之后，跑在了不同机器，大大增加了网络的时间成本。一次网络传输的时间可能可以忽略不计，如果百万次网络来回的时间，那可就不是小数目了，毕竟脚本中for循环每执行一次，至少就是一次网络传输。</p>
+<p><strong>将user表的条目乘以网络延迟的时间，果然是一个多小时！</strong> (敏锐的读者或许已经可以根据我的信息得到某些其它的东西了，不再透露更多，对于本文也不重要)。</p>
+<p>好奇的我又在老数据库上执行了一遍脚本，1分钟就完成了。原来如此，怪不得之前一直没有用户抱怨登录失败的问题。<strong>一来</strong> 是因为user表被锁的时间太短，几乎没有用户受到影响(已登录用户是通过session保留登录态的，不需要调用登录操作)。<strong>二来</strong> 是因为之前的脚本不是一次性锁住所有用户的，而是通过一条条语句，逐渐增加的。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><h4 id="关于这件事的总结"><a href="#关于这件事的总结" class="headerlink" title="关于这件事的总结"></a>关于这件事的总结</h4><p>一个mysql锁的问题和一个黑客sql注入的问题混杂在了一起，导致这个bug本身难以被发现。通过孜孜不倦的努力，终于还是把它查得水落石出，畅快淋漓啊！<br>本次事件有诸多巧合</p>
+<ol>
+<li>黑客敲诈的时间和数据库迁移的时间正好重叠</li>
+<li>黑客声称能登录任何账户和这个bug所体现的现象非常符合</li>
+<li>修改脚本配置，导致用户登录失败。通过排查这个bug，我们才发现了黑客，让我们注意力集中到了黑客身上，从而忽略了这个bug本身</li>
+</ol>
+<p>我们有告诉黑客，愿意以金钱购买他所说的漏洞，但他并没有回复，直接开始攻击。在解决问题之后，网站并无任何异常，他也不再进行进一步勒索，由此推断他手中已无底牌。当初的声称可能只是吓唬，以提高他能勒索的金额，通过sql注入来告诉我们他确实有几张牌。</p>
+<p>对于网络攻防更有经验的读者希望可以告知一些我们在排查过程中做的不足的地方，加以学习，感激不尽！</p>
+<h4 id="事件之外的总结"><a href="#事件之外的总结" class="headerlink" title="事件之外的总结"></a>事件之外的总结</h4><ol>
+<li>分布式软件架构的复杂度会随着分布式规模的增大而增大。单机或者小规模集群中没有体现的问题，会在规模变大之后被无限放大。</li>
+<li>没事儿，少折腾数据库。或者说在不够了解系统和数据库配置的情况下，折腾数据库的风险是巨大的，我将会有一篇文章详细介绍leetcode数据库迁移的过程，敬请期待。</li>
+<li>分布式系统问题的排查，需要关注方方面面，远比单机困难的多。对于小公司系统的扩容，最佳的做法是增加服务器的性能，其次才是考虑分布式架构的演变，因为这将大大增加维护成本。</li>
+<li>对于业务导向的小公司来说，如果暂时系统的高可用性不是首要的需求，使用足够强的单机，就足以支撑你们当前的业务了。而且一般的网络主机供应商所能提供的高可用性至少也有3个9(99.9%)。如果你们的业务已经强大到单机无法支撑，那么恭喜你们，你们离融资和扩张不远了。</li>
+</ol>
+
+        </div>
+        <footer class="article-footer">
+            
+
+
+
+    <a data-url="http://xidui.github.io/2017/03/29/一个藏匿在黑客迷雾下的bug/" data-id="cjq8u76d0004kveuj6c1qd1l3" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+<script>
+    (function ($) {
+        $('body').on('click', function() {
+            $('.article-share-box.on').removeClass('on');
+        }).on('click', '.article-share-link', function(e) {
+            e.stopPropagation();
+
+            var $this = $(this),
+                url = $this.attr('data-url'),
+                encodedUrl = encodeURIComponent(url),
+                id = 'article-share-box-' + $this.attr('data-id'),
+                offset = $this.offset(),
+                box;
+
+            if ($('#' + id).length) {
+                box = $('#' + id);
+
+                if (box.hasClass('on')){
+                    box.removeClass('on');
+                    return;
+                }
+            } else {
+                var html = [
+                    '<div id="' + id + '" class="article-share-box">',
+                        '<input class="article-share-input" value="' + url + '">',
+                        '<div class="article-share-links">',
+                            '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+                            '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+                            '<a href="http://pinterest.com/pin/create/button/?url=' + encodedUrl + '" class="article-share-pinterest" target="_blank" title="Pinterest"></a>',
+                            '<a href="https://plus.google.com/share?url=' + encodedUrl + '" class="article-share-google" target="_blank" title="Google+"></a>',
+                        '</div>',
+                    '</div>'
+                ].join('');
+
+              box = $(html);
+
+              $('body').append(box);
+            }
+
+            $('.article-share-box.on').hide();
+
+            box.css({
+                top: offset.top + 25,
+                left: offset.left
+            }).addClass('on');
+
+        }).on('click', '.article-share-box', function (e) {
+            e.stopPropagation();
+        }).on('click', '.article-share-box-input', function () {
+            $(this).select();
+        }).on('click', '.article-share-box-link', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            window.open(this.href, 'article-share-box-window-' + Date.now(), 'width=500,height=450');
+        });
+    })(jQuery);
+</script>
+
+        </footer>
+    </div>
+</article>
+
+    <section id="comments">
+    
+        
+    <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    </div>
+
+    
+    </section>
+
+
+
+                        </div>
+                    </section>
+                    <aside id="sidebar">
+    <a class="sidebar-toggle" title="Expand Sidebar"><i class="toggle icon"></i></a>
+    <div class="sidebar-top">
+        <p>follow:</p>
+        <ul class="social-links">
+            
+                
+                <li>
+                    <a class="social-tooltip" title="linkedin" href="https://www.linkedin.com/in/wang-yue/" target="_blank" rel="noopener">
+                        <i class="icon fa fa-linkedin"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="facebook" href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" rel="noopener">
+                        <i class="icon fa fa-facebook"></i>
+                    </a>
+                </li>
+                
+            
+                
+                <li>
+                    <a class="social-tooltip" title="github" href="https://github.com/xidui" target="_blank" rel="noopener">
+                        <i class="icon fa fa-github"></i>
+                    </a>
+                </li>
+                
+            
+        </ul>
+    </div>
+    
+        
+<nav id="article-nav">
+    
+    
+        <a href="/2017/02/09/记一次kubernetes网络调试/" id="article-nav-older" class="article-nav-link-wrap">
+        <strong class="article-nav-caption">older</strong>
+        <p class="article-nav-title">记一次kubernetes网络调试</p>
+        <i class="icon fa fa-chevron-left" id="icon-chevron-left"></i>
+        </a>
+    
+</nav>
+
+    
+    <div class="widgets-container">
+        
+            
+                
+
+            
+                
+    <div class="widget-wrap">
+        <h3 class="widget-title">recents</h3>
+        <div class="widget">
+            <ul id="recent-post" class="no-thumbnail">
+                
+                    <li>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"></p>
+                            <p class="item-title"><a href="/2017/03/29/一个藏匿在黑客迷雾下的bug/" class="title">一个隐藏在黑客迷雾下的bug——记一次黑客攻防</a></p>
+                            <p class="item-date"><time datetime="2017-03-30T01:28:52.000Z" itemprop="datePublished">2017-03-29</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
+                            <p class="item-title"><a href="/2017/02/09/记一次kubernetes网络调试/" class="title">记一次kubernetes网络调试</a></p>
+                            <p class="item-date"><time datetime="2017-02-09T23:39:23.000Z" itemprop="datePublished">2017-02-09</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
+                            <p class="item-title"><a href="/2017/02/06/在kubernetes中配置skydns/" class="title">在kubernetes中配置skydns</a></p>
+                            <p class="item-date"><time datetime="2017-02-06T17:08:03.000Z" itemprop="datePublished">2017-02-06</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
+                            <p class="item-title"><a href="/2017/01/03/手动在kubernetes集群中添加节点/" class="title">手动在kubernetes集群中添加minon</a></p>
+                            <p class="item-date"><time datetime="2017-01-04T02:30:30.000Z" itemprop="datePublished">2017-01-03</time></p>
+                        </div>
+                    </li>
+                
+                    <li>
+                        
+                        <div class="item-inner">
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
+                            <p class="item-title"><a href="/2016/07/13/nginx——map性能测试/" class="title">nginx中map模块的使用及性能测试</a></p>
+                            <p class="item-date"><time datetime="2016-07-13T05:30:58.000Z" itemprop="datePublished">2016-07-13</time></p>
+                        </div>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">categories</h3>
+        <div class="widget">
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">33</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">archives</h3>
+        <div class="widget">
+            <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">March 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">February 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">January 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">July 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">May 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">March 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/01/">January 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">December 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">November 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">October 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/09/">September 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">August 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">June 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">May 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">April 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">March 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/11/">November 2014</a><span class="archive-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">tags</h3>
+        <div class="widget">
+            <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/abtest/">abtest</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/angularjs/">angularjs</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ansible/">ansible</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/asyncio/">asyncio</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/c/">c++</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/coroutine/">coroutine</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/dns/">dns</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flannel/">flannel</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flask/">flask</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gcj/">gcj</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/gevent/">gevent</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/go/">go</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/hacker/">hacker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/http/">http</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/iptables/">iptables</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/jquery/">jquery</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/js/">js</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/kubernetes/">kubernetes</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/linux/">linux</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/markdown/">markdown</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/matlab/">matlab</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mongodb/">mongodb</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/mysql/">mysql</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nginx/">nginx</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/node-js/">node.js</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/nodejs/">nodejs</a><span class="tag-list-count">6</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/python/">python</a><span class="tag-list-count">8</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/shell/">shell</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/threadpool/">threadpool</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/tornado/">tornado</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/unittest/">unittest</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/并发/">并发</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/异步队列/">异步队列</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据挖掘/">数据挖掘</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/数据结构/">数据结构</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/机器学习/">机器学习</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/爬虫/">爬虫</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/算法/">算法</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/网络攻防/">网络攻防</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/翻译/">翻译</a><span class="tag-list-count">1</span></li></ul>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-float">
+        <h3 class="widget-title">tag cloud</h3>
+        <div class="widget tagcloud">
+            <a href="/tags/abtest/" style="font-size: 10px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 10px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 10px;">ansible</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/asyncio/" style="font-size: 11.67px;">asyncio</a> <a href="/tags/c/" style="font-size: 18.33px;">c++</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 10px;">dns</a> <a href="/tags/flannel/" style="font-size: 10px;">flannel</a> <a href="/tags/flask/" style="font-size: 10px;">flask</a> <a href="/tags/gcj/" style="font-size: 11.67px;">gcj</a> <a href="/tags/gevent/" style="font-size: 10px;">gevent</a> <a href="/tags/go/" style="font-size: 10px;">go</a> <a href="/tags/hacker/" style="font-size: 10px;">hacker</a> <a href="/tags/http/" style="font-size: 10px;">http</a> <a href="/tags/iptables/" style="font-size: 10px;">iptables</a> <a href="/tags/jquery/" style="font-size: 10px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 15px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 10px;">linux</a> <a href="/tags/markdown/" style="font-size: 10px;">markdown</a> <a href="/tags/matlab/" style="font-size: 11.67px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 15px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 11.67px;">mysql</a> <a href="/tags/nginx/" style="font-size: 10px;">nginx</a> <a href="/tags/node-js/" style="font-size: 10px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 18.33px;">nodejs</a> <a href="/tags/python/" style="font-size: 20px;">python</a> <a href="/tags/shell/" style="font-size: 10px;">shell</a> <a href="/tags/threadpool/" style="font-size: 11.67px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 10px;">unittest</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/并发/" style="font-size: 15px;">并发</a> <a href="/tags/异步队列/" style="font-size: 10px;">异步队列</a> <a href="/tags/数据挖掘/" style="font-size: 10px;">数据挖掘</a> <a href="/tags/数据结构/" style="font-size: 10px;">数据结构</a> <a href="/tags/机器学习/" style="font-size: 10px;">机器学习</a> <a href="/tags/爬虫/" style="font-size: 10px;">爬虫</a> <a href="/tags/算法/" style="font-size: 16.67px;">算法</a> <a href="/tags/网络攻防/" style="font-size: 10px;">网络攻防</a> <a href="/tags/翻译/" style="font-size: 10px;">翻译</a>
+        </div>
+    </div>
+
+
+            
+                
+    <div class="widget-wrap widget-list">
+        <h3 class="widget-title">links</h3>
+        <div class="widget">
+            <ul>
+                
+                    <li>
+                        <a href="http://hexo.io">Hexo</a>
+                    </li>
+                
+            </ul>
+        </div>
+    </div>
+
+
+            
+        
+    </div>
+</aside>
+
+                </div>
+            </div>
+        </div>
+        <footer id="footer">
+    <div class="container">
+        <div class="container-inner">
+            <a id="back-to-top" href="javascript:;"><i class="icon fa fa-angle-up"></i></a>
+            <div class="credit">
+                <h1 class="logo-wrap">
+                    <a href="/" class="logo"></a>
+                </h1>
+                <p>&copy; 2018 xidui</p>
+                <p>Powered by <a href="//hexo.io/" target="_blank">Hexo</a>. Theme by <a href="//github.com/ppoffice" target="_blank">PPOffice</a></p>
+            </div>
+            <div class="footer-plugins">
+              
+    
+
+
+            </div>
+        </div>
+    </div>
+</footer>
+
+        
+    
+    <script>
+    var disqus_shortname = 'xidui-is-very-lazy';
+    
+    
+    var disqus_url = 'http://xidui.github.io/2017/03/29/一个藏匿在黑客迷雾下的bug/';
+    
+    (function() {
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+    </script>
+
+
+
+
+    
+        <script src="/libs/lightgallery/js/lightgallery.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-thumbnail.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-pager.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-autoplay.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-fullscreen.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-zoom.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-hash.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-share.min.js"></script>
+        <script src="/libs/lightgallery/js/lg-video.min.js"></script>
+    
+    
+        <script src="/libs/justified-gallery/jquery.justifiedGallery.min.js"></script>
+    
+    
+
+
+
+<!-- Custom Scripts -->
+<script src="/js/main.js"></script>
+
+    </div>
+</body>
+</html>
