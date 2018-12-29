@@ -172,6 +172,35 @@ var _hmt = _hmt || [];
             <div class="category">
             <a class="article-category-link" href="/categories/Tech/">Tech</a>
             </div>
+            <div class="date"><time datetime="2015-08-24T02:20:29.000Z" itemprop="datePublished">2015-08-23</time></div>
+        </div>
+        
+    
+        <h1 class="article-title" itemprop="name">
+        <a href="/2015/08/23/python-调用C-ctypes库尝试/">python调用C++ —— ctypes库尝试</a>
+        </h1>
+    
+
+        <p class="article-excerpt">
+            python调用c++有很多种方法，今天我就来整理使用一下python中ctypes模块的用法。
+网上可以找到很多关于ctypes的使用资料，但都不全：1.类型介绍不完整2.只有python传入c++参数3.只有python接收c++返回我就针对以上的问题，作一个比较全面的使用介绍吧。
+使用很简单，各种拼拼凑凑，看代码就可以懂，就不多说了。
+        </p>
+    </div>
+</article>
+    
+
+    
+    
+    
+    
+        <article class="article article-summary">
+    <div class="article-summary-inner">
+        
+        <div class="article-meta">
+            <div class="category">
+            <a class="article-category-link" href="/categories/Tech/">Tech</a>
+            </div>
             <div class="date"><time datetime="2015-08-16T06:14:15.000Z" itemprop="datePublished">2015-08-16</time></div>
         </div>
         
@@ -188,10 +217,14 @@ var _hmt = _hmt || [];
     </div>
 </article>
     
+        </div>
+    
 
     
     
     
+    
+        <div class="article-row">
     
         <article class="article article-summary">
     <div class="article-summary-inner">
@@ -219,14 +252,10 @@ var _hmt = _hmt || [];
     </div>
 </article>
     
-        </div>
-    
 
     
     
     
-    
-        <div class="article-row">
     
         <article class="article article-summary">
     <div class="article-summary-inner">
@@ -251,10 +280,14 @@ var _hmt = _hmt || [];
     </div>
 </article>
     
+        </div>
+    
 
     
     
     
+    
+        <div class="article-row">
     
         <article class="article article-summary">
     <div class="article-summary-inner">
@@ -278,14 +311,10 @@ var _hmt = _hmt || [];
     </div>
 </article>
     
-        </div>
-    
 
     
     
     
-    
-        <div class="article-row">
     
         <article class="article article-summary">
     <div class="article-summary-inner">
@@ -310,10 +339,14 @@ var _hmt = _hmt || [];
     </div>
 </article>
     
+        </div>
+    
 
     
     
     
+    
+        <div class="article-row">
     
         <article class="article article-summary">
     <div class="article-summary-inner">
@@ -337,14 +370,10 @@ var _hmt = _hmt || [];
     </div>
 </article>
     
-        </div>
-    
 
     
     
     
-    
-        <div class="article-row">
     
         <article class="article article-summary">
     <div class="article-summary-inner">
@@ -368,10 +397,14 @@ var _hmt = _hmt || [];
     </div>
 </article>
     
+        </div>
+    
 
     
     
     
+    
+        <div class="article-row">
     
         <article class="article article-summary">
     <div class="article-summary-inner">
@@ -398,14 +431,10 @@ code jam 原题地址戳这里注：需要翻墙的哦
     </div>
 </article>
     
-        </div>
-    
 
     
     
     
-    
-        <div class="article-row">
     
         <article class="article article-summary">
     <div class="article-summary-inner">
@@ -426,35 +455,6 @@ code jam 原题地址戳这里注：需要翻墙的哦
         <p class="article-excerpt">
             继上一篇：这篇将会对C++用户模块以及js用户模块的加载流程作一个简单的分析。
 3.js用户模块只要是用户自己写的js模块，都归在这一类，包括通过npm install得到的模块也属于这个部分。在_load()接口中，会首先判断要加载的模块是不是js核心模块，在这里逻辑就不走进去了，而是直接新建一个模块对象，并且把它放进缓存中，以加快下次加载的速度。
-        </p>
-    </div>
-</article>
-    
-
-    
-    
-    
-    
-        <article class="article article-summary">
-    <div class="article-summary-inner">
-        
-        <div class="article-meta">
-            <div class="category">
-            <a class="article-category-link" href="/categories/Tech/">Tech</a>
-            </div>
-            <div class="date"><time datetime="2015-03-12T22:25:24.000Z" itemprop="datePublished">2015-03-12</time></div>
-        </div>
-        
-    
-        <h1 class="article-title" itemprop="name">
-        <a href="/2015/03/12/nodejs-源码浅析-二-——核心模块编译加载原理/">nodejs 源码浅析(二)——核心模块编译加载原理</a>
-        </h1>
-    
-
-        <p class="article-excerpt">
-            模块加载原理nodejs中，一共有四种类型的模块，C++核心模块（内建模块），js核心模块，C++用户模块，js用户模块。这部分来分别探讨下这些模块的编译加载流程。问题：1.require、exports、module这些对象用户没有声明过，但用户还是可以直接用require(),exports，这是为什么？2.引入别的模块的流程如何？
-
-1.js核心模块加载原理每个js模块都是一个文件，一个文件一个模块，在js代码中就是一个Module对象。至于那些整个包构成的模块，也是有一个对外的文件，如果没有指定默认是index.js作为出口文件，该文件内部又会使用require去包含其它的文件。
         </p>
     </div>
 </article>
@@ -523,7 +523,7 @@ code jam 原题地址戳这里注：需要翻墙的哦
                     <li>
                         
                         <div class="item-inner">
-                            <p class="item-category"></p>
+                            <p class="item-category"><a class="article-category-link" href="/categories/Tech/">Tech</a></p>
                             <p class="item-title"><a href="/2017/03/29/一个藏匿在黑客迷雾下的bug/" class="title">一个隐藏在黑客迷雾下的bug——记一次黑客攻防</a></p>
                             <p class="item-date"><time datetime="2017-03-30T01:28:52.000Z" itemprop="datePublished">2017-03-29</time></p>
                         </div>
@@ -574,7 +574,7 @@ code jam 原题地址戳这里注：需要翻墙的哦
     <div class="widget-wrap widget-list">
         <h3 class="widget-title">categories</h3>
         <div class="widget">
-            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">33</span></li></ul>
+            <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">34</span></li></ul>
         </div>
     </div>
 
