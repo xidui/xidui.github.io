@@ -20,7 +20,7 @@
 <meta property="og:site_name" content="xidui is very lazy">
 <meta property="og:description" content="前两篇的链接:Google一年工作感受(1)Google一年工作感受(2) 这次我们继续来聊聊工作内容中的测试，这篇文章可能带有比较多的感情色彩，don’t take it seriously。">
 <meta property="og:locale" content="en">
-<meta property="og:updated_time" content="2020-05-03T19:26:55.841Z">
+<meta property="og:updated_time" content="2020-05-03T19:37:01.208Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Google一年工作感受(3)">
 <meta name="twitter:description" content="前两篇的链接:Google一年工作感受(1)Google一年工作感受(2) 这次我们继续来聊聊工作内容中的测试，这篇文章可能带有比较多的感情色彩，don’t take it seriously。">
@@ -207,7 +207,7 @@ var _hmt = _hmt || [];
 <li>有的时候reviewer要求非常严格。之前的代码是别的组维护的，很多地方都测试不完全。有的时候我看到代码库里在某些地方没有加测试，于是我有时改了类似的地方就也想偷个懒 （当然是我个人也觉得测试不太重要，可有可无的地方，如果是那些critical logic path，我当然会自主地写测试），如果能拿到LGTM，那我这个CL就算是混过去了。然而大部分情况都会被抓住，然后花半天一天甚至更长的时间，加一个非常傻逼的测试用例。就相当于你写了个几行的简单操作，你需要花几百行的代码setup测试环境，mock、spy、还有相应的object initialization，然后还有可能会遇到(3)中的问题。毕竟这个测试之前没有，所有的坑没人踩过，你得走过(3)中的心路历程才能加好。我心中就会默默嘀咕：“你轻巧地随便一句话，我就要花一整天甚至几天的时间为你这句话买单，你要是相加倒是自己加啊！”更气人的是，有的时候我已经找到一个不错的方法绕过(3)中的问题，终于让<strong>你想要加的</strong>测试跑通了，reviewer看着觉得奇怪（废话，我花了这么久dig out的问题，然后想出的相应的walk around，岂是你短短几分钟review就能给参透的），不知道某个suggestion可不可行，轻巧地suggest，（在他来说是suggestion，在我看来是mandatory的，毕竟不照着改好他是不会给LGTM的），然后花了半天一天试好之后发现不行，还是得回到我之前的做法。顿时就对他很生气：“Suggestions from you are cheap and of less value, but I need to spend days to pay your shit off!”。</li>
 </ol>
 <ol start="5">
-<li>不建议用mock相关的（很方便的）测试框架。我一翻开以前的代码，全是mokito写的（为什么又到了我来这个组的时候，写测试就要砍掉这条左膀右臂）。除非没有啥别的好办法，不然你用mock的测试，肯定会被质问一番。原因据说是“安卓系统里的Context，Service等等都有很复杂的逻辑，如果mock了相关的object，很多地方的代码实际上就被跳过了，并不能很好地测试整个logic path，测试就不够具有代表性”。关于这点我其实是持有保留态度的，毕竟他们所说的这点应该是<strong>系统测试（System Test）</strong>的职责，对于<strong>单元测试（Unit Test）</strong>，应该只关注与某个代码局部，其它和当前测试无关的地方就应该被隐藏。由于我人微言轻，而且也可能也有我理解不够全面的地方，就先不争论了。有了这个背景，于是很多本来很容易测试的地方就会变得束手无策，或者需要绕很大的弯才能完成。比如mokito里面有一个verify，可以验证某个函数是否被调用了。如果我只需要测试某个函数是否被调用，而不需要关心其执行结果的话，我就可以mock那个函数所在的object，最后再测视力调用下verify方法就可以了。如果我不能用这个功能，我只能去看看那个方法调用会产生什么影响，再想相应的对策。比如说那个方法调用会设置某个变量，我只能在测试中取出那个变量，看看它的值有没有变话。而取出变量这个操作，只能通过加getter方法或者提升该变量的可见度为public来实现。最让我惊讶的一点是，提升变量可见度为public他们竟然有的时候会觉得ok，反而用mock是不ok的。关于这点，我真是完全不能苟同啊。</li>
+<li>不建议用mock相关的（很方便的）测试框架。我一翻开以前的代码，全是mokito写的（为什么又到了我来这个组的时候，写测试就要砍掉这条左膀右臂）。除非没有啥别的好办法，不然你用mock的测试，肯定会被质问一番。原因据说是“安卓系统里的Context，Service等等都有很复杂的逻辑，如果mock了相关的object，很多地方的代码实际上就被跳过了，并不能很好地测试整个logic path，测试就不够具有代表性”。关于这点我其实是持有保留态度的，毕竟他们所说的这点应该是<strong>系统测试（System Test）</strong>的职责，对于<strong>单元测试（Unit Test）</strong>，应该只关注与某个代码局部，其它和当前测试无关的地方就应该被隐藏。由于我人微言轻，而且也可能也有我理解不够全面的地方，就先不争论了。有了这个背景，于是很多本来很容易测试的地方就会变得束手无策，或者需要绕很大的弯才能完成。比如mokito里面有一个verify，可以验证某个函数是否被调用了。如果我只需要测试某个函数是否被调用，而不需要关心其执行结果的话，我就可以mock那个函数所在的object，最后再测视里调用verify方法就可以了。如果我不能用这个功能，我只能去看看那个方法调用会产生什么影响，再想相应的对策。比如说那个方法调用会设置某个变量，我只能在测试中取出那个变量，看看它的值有没有变话。而取出变量这个操作，只能通过加getter方法或者提升该变量的可见度为public来实现。最让我惊讶的一点是，提升变量可见度为public他们竟然有的时候会觉得ok，反而用mock是不ok的。关于这点，我真是完全不能苟同啊。</li>
 </ol>
 <p>以上就是为什么我觉得在当前组里写测试是很头痛的原因。往往业务逻辑写一小时，测试可能需要花几天到一周，而且很多测试在我看来价值不大。</p>
 <p>在腾讯的时候关于测试我也觉得很奇怪，只有黑盒测试，完全不用写任何单元测试。我当时一年一行测试都没写。可能当时更在意的是开发速度吧。。。毕竟赚钱才是KPI，代码质量是KPI？不存在的。不过这可能也不具有代表性，毕竟我不相信腾讯作为国内的老大哥，这么不在乎测试。可能跟我处在的游戏行业有关？</p>
@@ -219,7 +219,7 @@ var _hmt = _hmt || [];
 
 
 
-    <a data-url="http://xidui.github.io/2020/05/03/Google一年工作感受(3)/" data-id="ck9rbafzs000297ujsyr7ajoy" class="article-share-link"><i class="fa fa-share"></i>Share</a>
+    <a data-url="http://xidui.github.io/2020/05/03/Google一年工作感受(3)/" data-id="ck9rgi3tl0004suujrge5zxq0" class="article-share-link"><i class="fa fa-share"></i>Share</a>
 <script>
     (function ($) {
         $('body').on('click', function() {
