@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>在linode服务器上安装kubernetes集群 | Hexo</title>
+  <meta name="description" content="前言这篇文章其实主要是记录我在安装kubernetes集群时遇到的坑，然后是如何解决的。关于kubernetes的概念，以及安装kubernetes的详细流程将不在本文涉及。 问题背景我已经在Digital Ocean成功部署了一个小型的kubernetes集群，包含一个master和一个slave。部署的方式是使用ansible，这里有一个项目可以参考contrib，按照里面的配置配一下，就可以">
+<meta property="og:type" content="article">
+<meta property="og:title" content="在linode服务器上安装kubernetes集群">
+<meta property="og:url" content="http://xidui.github.io/2016/05/30/%E5%9C%A8linode%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8A%E5%AE%89%E8%A3%85kubernetes%E9%9B%86%E7%BE%A4/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="前言这篇文章其实主要是记录我在安装kubernetes集群时遇到的坑，然后是如何解决的。关于kubernetes的概念，以及安装kubernetes的详细流程将不在本文涉及。 问题背景我已经在Digital Ocean成功部署了一个小型的kubernetes集群，包含一个master和一个slave。部署的方式是使用ansible，这里有一个项目可以参考contrib，按照里面的配置配一下，就可以">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://xidui.github.io/images/QQ20160530-0@2x.png">
+<meta property="article:published_time" content="2016-05-30T21:32:59.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:48:33.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="kubernetes">
+<meta property="article:tag" content="ansible">
+<meta property="article:tag" content="flannel">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xidui.github.io/images/QQ20160530-0@2x.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2016/05/30/%E5%9C%A8linode%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8A%E5%AE%89%E8%A3%85kubernetes%E9%9B%86%E7%BE%A4/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-在linode服务器上安装kubernetes集群" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      在linode服务器上安装kubernetes集群
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2016/05/30/%E5%9C%A8linode%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8A%E5%AE%89%E8%A3%85kubernetes%E9%9B%86%E7%BE%A4/" class="article-date">
+	  <time datetime="2016-05-30T21:32:59.000Z" itemprop="datePublished">2016-05-30</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/ansible/" rel="tag">ansible</a>, <a class="article-tag-link-link" href="/tags/flannel/" rel="tag">flannel</a>, <a class="article-tag-link-link" href="/tags/kubernetes/" rel="tag">kubernetes</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2016/05/30/%E5%9C%A8linode%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8A%E5%AE%89%E8%A3%85kubernetes%E9%9B%86%E7%BE%A4/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 3.6k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 13 mins.(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>这篇文章其实主要是记录我在安装kubernetes集群时遇到的坑，然后是如何解决的。关于kubernetes的概念，以及安装kubernetes的详细流程将不在本文涉及。</p>
+<h3 id="问题背景"><a href="#问题背景" class="headerlink" title="问题背景"></a>问题背景</h3><p>我已经在<a target="_blank" rel="noopener" href="https://www.digitalocean.com/">Digital Ocean</a>成功部署了一个小型的kubernetes集群，包含一个master和一个slave。部署的方式是使用<a target="_blank" rel="noopener" href="https://github.com/ansible/ansible">ansible</a>，这里有一个项目可以参考<a target="_blank" rel="noopener" href="https://github.com/kubernetes/contrib/tree/master/ansible">contrib</a>，按照里面的配置配一下，就可以一键部署集群了。</p>
+<p>由于linode机器比DO的机器性价比高一点($40&#x2F;month这一档前者是4核的CPU，后者只有2核)，所以想把集群迁移到linode上。然而在使用脚本部署的过程中总是报错，查了一下发现kubernetes的<a target="_blank" rel="noopener" href="https://github.com/coreos/flannel">flannel</a>网络层插件始终起不来，查看了systemctl的日志，发现flannel无法初始化vxlan的网络，具体症状可以参考这样一个<a target="_blank" rel="noopener" href="https://github.com/coreos/flannel/issues/441">issue</a>。</p>
+<span id="more"></span>
+<p>总结来说，就是linode服务器的内核默认是他们封装过的版本，和linux推出的官方内核有区别，他们的内核无法支持vxlan网络层驱动，执行<code>lsmod</code>发现是空的。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">root@localhost:~$ lsmod</span><br><span class="line">Module                  Size  Used by</span><br><span class="line">root@localhost:~$ uname -a</span><br><span class="line">Linux localhost 4.5.0-x86-linode84 #2 SMP Mon Mar 14 18:19:49 EDT 2016 i686 i686 i686 GNU/Linux</span><br></pre></td></tr></table></figure>
+
+<h3 id="解决过程"><a href="#解决过程" class="headerlink" title="解决过程"></a>解决过程</h3><p>既然这样，那就只能跑一个自定义的kernel版本了。然而在build linode机器的时候内核版本没有办法选择。好在还可以选择<code>grub</code>的方式boot，官方文档也给了一篇相关的<a target="_blank" rel="noopener" href="https://www.linode.com/docs/tools-reference/custom-kernels-distros/run-a-distribution-supplied-kernel-with-kvm">文章</a>。按照它的流程执行完，发现内核版本已经变了，lsmod也有了好多模块:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@li85-212 ~]# uname -a</span><br><span class="line">Linux li85-212.members.linode.com 3.10.0-327.18.2.el7.x86_64 #1 SMP Thu May 12 11:03:55 UTC 2016 x86_64 x86_64 x86_64 GNU/Linux</span><br><span class="line">[root@li85-212 ~]# lsmod</span><br><span class="line">Module                  Size  Used by</span><br><span class="line">xt_comment             12504  1</span><br><span class="line">ip6t_rpfilter          12546  1</span><br><span class="line">ip6t_REJECT            12939  2</span><br><span class="line"># 此处省略好多行</span><br></pre></td></tr></table></figure>
+
+<p>这里有一点要注意，linode默认rebuild的时候是没有开启”Auto-configure Networking”的，把最下面那个选上，再rebuild即可。不然服务器启动，你会发现<code>ifconfig</code>只有一个lo的本地网口，外网网卡没有了。</p>
+<img src="/images/QQ20160530-0@2x.png" class="">
+
+<p>然而工作到这里还没做完，此时内核还是没有开启vxlan，这个时候执行下<code>modprobe vxlan</code>就ok了,</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@li85-212 ~]# lsmod | grep vxlan</span><br><span class="line">vxlan                  41236  0</span><br><span class="line">ip6_udp_tunnel         12755  1 vxlan</span><br><span class="line">udp_tunnel             13187  1 vxlan</span><br></pre></td></tr></table></figure>
+
+<p>然后就可以接着执行之前安装kubernetes的ansible脚本，等着它执行完毕了~</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2016/05/30/%E5%9C%A8linode%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8A%E5%AE%89%E8%A3%85kubernetes%E9%9B%86%E7%BE%A4/" title="在linode服务器上安装kubernetes集群" target="_blank" rel="external">http://xidui.github.io/2016/05/30/%E5%9C%A8linode%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8A%E5%AE%89%E8%A3%85kubernetes%E9%9B%86%E7%BE%A4/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2016/07/13/nginx%E2%80%94%E2%80%94map%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/" title="nginx中map模块的使用及性能测试"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2016/03/27/%E7%AE%97%E6%B3%95%E8%AE%AD%E7%BB%83%E7%AC%94%E8%AE%B0%E2%80%94%E2%80%94GCJ-2008-R1A-B-Milkshakes/" title="算法训练——GCJ-2008-R1A-B-Milkshakes"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2016/05/30/%E5%9C%A8linode%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8A%E5%AE%89%E8%A3%85kubernetes%E9%9B%86%E7%BE%A4/';
+        
+        this.page.identifier = '在linode服务器上安装kubernetes集群';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

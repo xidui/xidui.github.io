@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>mysql mongodb性能测试 | Hexo</title>
+  <meta name="description" content="对mysql和mongodb做一个简单的调研。 测试环境数据库版本mongodb: 3.0.5 无任何优化，单机测试mysql: 5.6.26 无任何优化，单机测试 环境CPU: 2.2 GHz Intel Core i7内存: 16G DDR3操作系统: OS X Yosemite 10.10.5python: 3.5.0 数据库接口驱动mongodb: PyMongo 3.0.3mysql:">
+<meta property="og:type" content="article">
+<meta property="og:title" content="mysql mongodb性能测试">
+<meta property="og:url" content="http://xidui.github.io/2015/09/27/mysql-mongodb%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="对mysql和mongodb做一个简单的调研。 测试环境数据库版本mongodb: 3.0.5 无任何优化，单机测试mysql: 5.6.26 无任何优化，单机测试 环境CPU: 2.2 GHz Intel Core i7内存: 16G DDR3操作系统: OS X Yosemite 10.10.5python: 3.5.0 数据库接口驱动mongodb: PyMongo 3.0.3mysql:">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://xidui.github.io/images/insert_comp_100.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/insert_comp_500.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/insert_comp_1000.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/sort_comp_100.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/sort_comp_500.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/sort_comp_1000.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/search_comp_100.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/search_comp_500.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/search_comp_1000.jpg">
+<meta property="article:published_time" content="2015-09-27T17:07:50.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:47:33.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="mongodb">
+<meta property="article:tag" content="mysql">
+<meta property="article:tag" content="matlab">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xidui.github.io/images/insert_comp_100.jpg">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2015/09/27/mysql-mongodb%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-mysql-mongodb性能测试" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      mysql mongodb性能测试
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2015/09/27/mysql-mongodb%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/" class="article-date">
+	  <time datetime="2015-09-27T17:07:50.000Z" itemprop="datePublished">2015-09-27</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/matlab/" rel="tag">matlab</a>, <a class="article-tag-link-link" href="/tags/mongodb/" rel="tag">mongodb</a>, <a class="article-tag-link-link" href="/tags/mysql/" rel="tag">mysql</a>, <a class="article-tag-link-link" href="/tags/python/" rel="tag">python</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2015/09/27/mysql-mongodb%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 26k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 1:36(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <p>对mysql和mongodb做一个简单的调研。</p>
+<h3 id="测试环境"><a href="#测试环境" class="headerlink" title="测试环境"></a>测试环境</h3><h4 id="数据库版本"><a href="#数据库版本" class="headerlink" title="数据库版本"></a>数据库版本</h4><p>mongodb: 3.0.5 无任何优化，单机测试<br>mysql: 5.6.26 无任何优化，单机测试</p>
+<h4 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h4><p>CPU: 2.2 GHz Intel Core i7<br>内存: 16G DDR3<br>操作系统: OS X Yosemite 10.10.5<br>python: 3.5.0</p>
+<h4 id="数据库接口驱动"><a href="#数据库接口驱动" class="headerlink" title="数据库接口驱动"></a>数据库接口驱动</h4><p>mongodb: PyMongo 3.0.3<br>mysql: PyMySQL 0.6.6</p>
+<span id="more"></span>
+
+<hr>
+<h3 id="测试指标"><a href="#测试指标" class="headerlink" title="测试指标"></a>测试指标</h3><ul>
+<li>插入</li>
+<li>排序</li>
+<li>搜索</li>
+</ul>
+<hr>
+<h3 id="测试脚本"><a href="#测试脚本" class="headerlink" title="测试脚本"></a>测试脚本</h3><h4 id="测试思路如下："><a href="#测试思路如下：" class="headerlink" title="测试思路如下："></a>测试思路如下：</h4><ul>
+<li>清空数据表</li>
+<li>插入100次数据，每次10000条</li>
+<li>统计每次插入的时间</li>
+<li>每次插入后，取出排序后最大的10条记录，并计时</li>
+<li>每次插入后，随机搜索10000条，并计时，统计QPS</li>
+</ul>
+<h4 id="mysql测试脚本"><a href="#mysql测试脚本" class="headerlink" title="mysql测试脚本"></a>mysql测试脚本</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pymysql</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> random <span class="keyword">import</span> randint</span><br><span class="line"></span><br><span class="line">EACH_INSERT = <span class="number">10000</span></span><br><span class="line">INSERT_COUNT = <span class="number">1000</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">md5</span>(<span class="params">s</span>):</span><br><span class="line">    <span class="keyword">import</span> hashlib</span><br><span class="line">    m = hashlib.md5()</span><br><span class="line">    m.update(<span class="built_in">str</span>(s).encode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line">    <span class="keyword">return</span> m.hexdigest()</span><br><span class="line"></span><br><span class="line"><span class="comment"># init</span></span><br><span class="line">conn = pymysql.connect(host=<span class="string">&#x27;127.0.0.1&#x27;</span>, port=<span class="number">3306</span>, user=<span class="string">&#x27;root&#x27;</span>, passwd=<span class="literal">None</span>, db=<span class="string">&#x27;test&#x27;</span>)</span><br><span class="line">cur = conn.cursor()</span><br><span class="line">cur.execute(<span class="string">&quot;TRUNCATE test.test_speed&quot;</span>)</span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    <span class="comment"># 加入这行速度有质的飞跃，本来一晚上只能跑到75w量级，现在几分钟就跑到100w量级了</span></span><br><span class="line">    cur.execute(<span class="string">&quot;ALTER TABLE `test`.`test_speed` ADD INDEX `index_value` (`value` ASC)&quot;</span>)</span><br><span class="line"><span class="keyword">except</span>:</span><br><span class="line">    <span class="keyword">pass</span></span><br><span class="line">file = <span class="built_in">open</span>(<span class="string">&#x27;mysql_result_&#x27;</span> + <span class="built_in">str</span>(INSERT_COUNT) + <span class="string">&#x27;.txt&#x27;</span>, <span class="string">&#x27;w&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(INSERT_COUNT):</span><br><span class="line">    <span class="comment"># insert</span></span><br><span class="line">    l = []</span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(EACH_INSERT):</span><br><span class="line">        l.append(md5(<span class="built_in">str</span>(i) + <span class="string">&#x27;_&#x27;</span> + <span class="built_in">str</span>(j)))</span><br><span class="line">    pre = time.time()</span><br><span class="line">    <span class="keyword">for</span> k <span class="keyword">in</span> l:</span><br><span class="line">        sta = cur.execute(<span class="string">&quot;INSERT INTO `test_speed` (`value`) VALUES (&#x27;&#123;0&#125;&#x27;)&quot;</span>.<span class="built_in">format</span>(k))</span><br><span class="line">        conn.commit()</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;&#123;0&#125;: &#123;1&#125;&quot;</span>.<span class="built_in">format</span>(i, time.time() - pre))</span><br><span class="line">    insert_time = after - pre</span><br><span class="line"></span><br><span class="line">    <span class="comment"># sort</span></span><br><span class="line">    pre = time.time()</span><br><span class="line">    cur.execute(<span class="string">&quot;SELECT * FROM test_speed ORDER BY value DESC limit 0, 10&quot;</span>)</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;sort time: &#123;0&#125;&quot;</span>.<span class="built_in">format</span>(time.time() - pre))</span><br><span class="line">    sort_time = after - pre</span><br><span class="line"></span><br><span class="line">    <span class="comment"># search</span></span><br><span class="line">    l = []</span><br><span class="line">    num = EACH_INSERT</span><br><span class="line">    <span class="keyword">for</span> k <span class="keyword">in</span> <span class="built_in">range</span>(num):</span><br><span class="line">        s = <span class="built_in">str</span>(randint(<span class="number">0</span>, i)) + <span class="string">&#x27;_&#x27;</span> + <span class="built_in">str</span>(randint(<span class="number">0</span>, EACH_INSERT - <span class="number">1</span>))</span><br><span class="line">        l.append(md5(s))</span><br><span class="line">    pre = time.time()</span><br><span class="line">    <span class="keyword">for</span> k <span class="keyword">in</span> l:</span><br><span class="line">        cur.execute(<span class="string">&quot;SELECT * FROM test_speed WHERE value = &#x27;&#123;0&#125;&#x27;&quot;</span>.<span class="built_in">format</span>(k))</span><br><span class="line">        <span class="keyword">for</span> v <span class="keyword">in</span> cur:</span><br><span class="line">            value = v[<span class="number">1</span>]</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;search time(&#123;0&#125;): &#123;1&#125;&quot;</span>.<span class="built_in">format</span>(num, time.time() - pre))</span><br><span class="line">    search_time = after - pre</span><br><span class="line"></span><br><span class="line">    <span class="comment"># write result</span></span><br><span class="line">    file.write(<span class="string">&quot;&#123;0&#125; &#123;1&#125; &#123;2&#125; &#123;3&#125;\n&quot;</span>.<span class="built_in">format</span>((i + <span class="number">1</span>) * EACH_INSERT, insert_time, sort_time, search_time))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">cur.close()</span><br><span class="line">conn.close()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="mongodb测试脚本"><a href="#mongodb测试脚本" class="headerlink" title="mongodb测试脚本"></a>mongodb测试脚本</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pymongo</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> random <span class="keyword">import</span> randint</span><br><span class="line"></span><br><span class="line">EACH_INSERT = <span class="number">10000</span></span><br><span class="line">INSERT_COUNT = <span class="number">1000</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">md5</span>(<span class="params">s</span>):</span><br><span class="line">    <span class="keyword">import</span> hashlib</span><br><span class="line">    m = hashlib.md5()</span><br><span class="line">    m.update(<span class="built_in">str</span>(s).encode(<span class="string">&#x27;utf-8&#x27;</span>))</span><br><span class="line">    <span class="keyword">return</span> m.hexdigest()</span><br><span class="line"></span><br><span class="line"><span class="comment"># init</span></span><br><span class="line">client = pymongo.MongoClient(<span class="string">&#x27;localhost&#x27;</span>, <span class="number">27017</span>)</span><br><span class="line">db = client.test</span><br><span class="line">collection = db[<span class="string">&#x27;test_speed&#x27;</span>]</span><br><span class="line">collection.drop()</span><br><span class="line">collection.create_index([(<span class="string">&#x27;value&#x27;</span>, pymongo.DESCENDING)])</span><br><span class="line">file = <span class="built_in">open</span>(<span class="string">&#x27;mongo_result_&#x27;</span> + <span class="built_in">str</span>(INSERT_COUNT) + <span class="string">&#x27;.txt&#x27;</span>, <span class="string">&#x27;a&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(INSERT_COUNT):</span><br><span class="line">    <span class="comment"># insert</span></span><br><span class="line">    l = []</span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> <span class="built_in">range</span>(EACH_INSERT):</span><br><span class="line">        l.append(md5(<span class="built_in">str</span>(i) + <span class="string">&#x27;_&#x27;</span> + <span class="built_in">str</span>(j)))</span><br><span class="line">    pre = time.time()</span><br><span class="line">    <span class="keyword">for</span> k <span class="keyword">in</span> l:</span><br><span class="line">        collection.insert(&#123;<span class="string">&#x27;value&#x27;</span>: k&#125;)</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;insert time &#123;0&#125;: &#123;1&#125;&quot;</span>.<span class="built_in">format</span>(i, after - pre))</span><br><span class="line">    insert_time = after - pre</span><br><span class="line"></span><br><span class="line">    <span class="comment"># sort</span></span><br><span class="line">    pre = time.time()</span><br><span class="line">    res = collection.find().sort(<span class="string">&#x27;value&#x27;</span>, pymongo.DESCENDING).limit(<span class="number">10</span>)</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;sort time: &#123;0&#125;&quot;</span>.<span class="built_in">format</span>(after - pre))</span><br><span class="line">    sort_time = after - pre</span><br><span class="line"></span><br><span class="line">    <span class="comment"># search</span></span><br><span class="line">    l = []</span><br><span class="line">    num = EACH_INSERT</span><br><span class="line">    <span class="keyword">for</span> k <span class="keyword">in</span> <span class="built_in">range</span>(num):</span><br><span class="line">        s = <span class="built_in">str</span>(randint(<span class="number">0</span>, i)) + <span class="string">&#x27;_&#x27;</span> + <span class="built_in">str</span>(randint(<span class="number">0</span>, EACH_INSERT - <span class="number">1</span>))</span><br><span class="line">        l.append(md5(s))</span><br><span class="line">    pre = time.time()</span><br><span class="line">    <span class="keyword">for</span> k <span class="keyword">in</span> l:</span><br><span class="line">        res = collection.find(&#123;<span class="string">&#x27;value&#x27;</span>: k&#125;)</span><br><span class="line">        <span class="keyword">for</span> v <span class="keyword">in</span> res:</span><br><span class="line">            value = v[<span class="string">&#x27;value&#x27;</span>]</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;search time(&#123;0&#125;): &#123;1&#125;&quot;</span>.<span class="built_in">format</span>(num, after - pre))</span><br><span class="line">    search_time = after - pre</span><br><span class="line"></span><br><span class="line">    <span class="comment"># write result</span></span><br><span class="line">    file.write(<span class="string">&quot;&#123;0&#125; &#123;1&#125; &#123;2&#125; &#123;3&#125;\n&quot;</span>.<span class="built_in">format</span>((i + <span class="number">1</span>) * EACH_INSERT, insert_time, sort_time, search_time))</span><br><span class="line"></span><br><span class="line">file.close()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
+
+<hr>
+<h3 id="结果展示"><a href="#结果展示" class="headerlink" title="结果展示"></a>结果展示</h3><p>作图使用的是<strong>matlab</strong></p>
+<p>matlab作图脚本</p>
+<figure class="highlight matlab"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">plot_result</span><span class="params">(size)</span></span></span><br><span class="line">    mysql = load([<span class="string">&#x27;mysql_result_&#x27;</span>, num2str(<span class="built_in">size</span>), <span class="string">&#x27;.txt&#x27;</span>]);</span><br><span class="line">    mongo = load([<span class="string">&#x27;mongo_result_&#x27;</span>, num2str(<span class="built_in">size</span>), <span class="string">&#x27;.txt&#x27;</span>]);</span><br><span class="line">    data_size = mysql(:, <span class="number">1</span>);</span><br><span class="line">    mongo_insert_vec = mongo(:, <span class="number">2</span>);</span><br><span class="line">    mysql_insert_vec = mysql(:, <span class="number">2</span>);</span><br><span class="line">    mongo_sort_vec = mongo(:, <span class="number">3</span>);</span><br><span class="line">    mysql_sort_vec = mysql(:, <span class="number">3</span>);</span><br><span class="line">    mongo_search_vec = mongo(:, <span class="number">4</span>);</span><br><span class="line">    mysql_search_vec = mysql(:, <span class="number">4</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">% insert</span></span><br><span class="line">    <span class="built_in">plot</span>(data_size, mysql_insert_vec);</span><br><span class="line">    grid on;</span><br><span class="line">    <span class="built_in">hold</span> on;</span><br><span class="line">    <span class="built_in">plot</span>(data_size, mongo_insert_vec);</span><br><span class="line">    title([num2str(<span class="built_in">size</span>), <span class="string">&#x27;w数据插入比较&#x27;</span>]);</span><br><span class="line">    <span class="built_in">legend</span>(<span class="string">&#x27;mysql&#x27;</span>, <span class="string">&#x27;mongodb&#x27;</span>);</span><br><span class="line">    xlabel(<span class="string">&#x27;data size&#x27;</span>);</span><br><span class="line">    ylabel(<span class="string">&#x27;insert time per 10000 query&#x27;</span>);</span><br><span class="line">    saveas(gcf, [<span class="string">&#x27;insert_comp_&#x27;</span>, num2str(<span class="built_in">size</span>), <span class="string">&#x27;.jpg&#x27;</span>])</span><br><span class="line">    <span class="built_in">hold</span> off;</span><br><span class="line"></span><br><span class="line">    <span class="comment">% 排序</span></span><br><span class="line">    <span class="built_in">plot</span>(data_size, mysql_sort_vec);</span><br><span class="line">    grid on;</span><br><span class="line">    <span class="built_in">hold</span> on;</span><br><span class="line">    <span class="built_in">plot</span>(data_size, mongo_sort_vec);</span><br><span class="line">    title(<span class="string">&#x27;取最大的10个值&#x27;</span>);</span><br><span class="line">    <span class="built_in">legend</span>(<span class="string">&#x27;mysql&#x27;</span>, <span class="string">&#x27;mongodb&#x27;</span>);</span><br><span class="line">    xlabel(<span class="string">&#x27;data size&#x27;</span>);</span><br><span class="line">    ylabel(<span class="string">&#x27;second&#x27;</span>);</span><br><span class="line">    saveas(gcf, [<span class="string">&#x27;sort_comp_&#x27;</span>, num2str(<span class="built_in">size</span>), <span class="string">&#x27;.jpg&#x27;</span>])</span><br><span class="line">    <span class="built_in">hold</span> off;</span><br><span class="line"></span><br><span class="line">    <span class="comment">% 搜索</span></span><br><span class="line">    <span class="keyword">for</span> <span class="built_in">i</span> = <span class="number">1</span>:<span class="built_in">size</span></span><br><span class="line">        mysql_search_vec(<span class="built_in">i</span>) = (<span class="built_in">i</span> * <span class="number">10000</span> / <span class="number">100</span>) / mysql_search_vec(<span class="built_in">i</span>);</span><br><span class="line">        mongo_search_vec(<span class="built_in">i</span>) = (<span class="built_in">i</span> * <span class="number">10000</span> / <span class="number">100</span>) / mongo_search_vec(<span class="built_in">i</span>);</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line">    <span class="built_in">plot</span>(data_size, mysql_search_vec);</span><br><span class="line">    grid on;</span><br><span class="line">    <span class="built_in">hold</span> on;</span><br><span class="line">    <span class="built_in">plot</span>(data_size, mongo_search_vec);</span><br><span class="line">    title(<span class="string">&#x27;QPS&#x27;</span>);</span><br><span class="line">    <span class="built_in">legend</span>(<span class="string">&#x27;mysql&#x27;</span>, <span class="string">&#x27;mongodb&#x27;</span>);</span><br><span class="line">    xlabel(<span class="string">&#x27;data size&#x27;</span>);</span><br><span class="line">    ylabel(<span class="string">&#x27;query per second&#x27;</span>);</span><br><span class="line">    saveas(gcf, [<span class="string">&#x27;search_comp_&#x27;</span>, num2str(<span class="built_in">size</span>), <span class="string">&#x27;.jpg&#x27;</span>])</span><br><span class="line">    <span class="built_in">hold</span> off;</span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="插入比较"><a href="#插入比较" class="headerlink" title="插入比较"></a>插入比较</h4><p><em>100w数据</em></p>
+<img src="/images/insert_comp_100.jpg" class="">
+
+<p><em>500w数据</em></p>
+<img src="/images/insert_comp_500.jpg" class="">
+
+<p><em>1000w数据</em></p>
+<img src="/images/insert_comp_1000.jpg" class="">
+
+<h4 id="排序比较"><a href="#排序比较" class="headerlink" title="排序比较"></a>排序比较</h4><p><em>100w数据</em></p>
+<img src="/images/sort_comp_100.jpg" class="">
+
+<p><em>500w数据</em></p>
+<img src="/images/sort_comp_500.jpg" class="">
+
+<p><em>1000w数据</em></p>
+<img src="/images/sort_comp_1000.jpg" class="">
+
+<h4 id="搜索比较"><a href="#搜索比较" class="headerlink" title="搜索比较"></a>搜索比较</h4><p><em>100w数据</em></p>
+<img src="/images/search_comp_100.jpg" class="">
+
+<p><em>500w数据</em></p>
+<img src="/images/search_comp_500.jpg" class="">
+
+<p><em>1000w数据</em></p>
+<img src="/images/search_comp_1000.jpg" class="">
+
+<hr>
+<h3 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h3><p><a target="_blank" rel="noopener" href="http://blog.csdn.net/clh604/article/details/19608869">http://blog.csdn.net/clh604/article/details/19608869</a><br><a target="_blank" rel="noopener" href="http://www.cnblogs.com/inrie/archive/2011/02/22/1961415.html">http://www.cnblogs.com/inrie/archive/2011/02/22/1961415.html</a></p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2015/09/27/mysql-mongodb%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/" title="mysql mongodb性能测试" target="_blank" rel="external">http://xidui.github.io/2015/09/27/mysql-mongodb%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2015/10/03/%E6%9C%9F%E6%9C%9B%E6%9C%80%E5%A4%A7%E5%8C%96-EM-%E7%AE%97%E6%B3%95matlab%E5%AE%9E%E7%8E%B0/" title="期望最大化(EM)算法matlab实现"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2015/09/02/%E6%B5%85%E8%B0%88%E8%B7%A8%E5%9F%9F%E9%97%AE%E9%A2%98/" title="浅谈跨域问题"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2015/09/27/mysql-mongodb%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/';
+        
+        this.page.identifier = 'mysql-mongodb性能测试';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

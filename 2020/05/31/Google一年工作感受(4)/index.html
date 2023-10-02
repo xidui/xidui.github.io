@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>Google一年工作感受(4) | Hexo</title>
+  <meta name="description" content="其它几篇的链接:  Google一年工作感受(1) Google一年工作感受(2) Google一年工作感受(3)  上一篇我们吐槽了工作内容中的测试，这次我们来聊聊发布。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Google一年工作感受(4)">
+<meta property="og:url" content="http://xidui.github.io/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="其它几篇的链接:  Google一年工作感受(1) Google一年工作感受(2) Google一年工作感受(3)  上一篇我们吐槽了工作内容中的测试，这次我们来聊聊发布。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-05-31T22:38:23.000Z">
+<meta property="article:modified_time" content="2020-06-01T00:22:00.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="Google">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-Google一年工作感受(4)" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Google一年工作感受(4)
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="article-date">
+	  <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Life/">Life</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/Google/" rel="tag">Google</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 3.6k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 13 mins.(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <p>其它几篇的链接: </p>
+<a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" title="Google一年工作感受(1)">Google一年工作感受(1)</a>
+<a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" title="Google一年工作感受(2)">Google一年工作感受(2)</a>
+<a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" title="Google一年工作感受(3)">Google一年工作感受(3)</a>
+
+<p>上一篇我们吐槽了<strong>工作内容</strong>中的测试，这次我们来聊聊<strong>发布</strong>。</p>
+<span id="more"></span>
+
+<h3 id="工作内容"><a href="#工作内容" class="headerlink" title="工作内容"></a>工作内容</h3><h4 id="发布"><a href="#发布" class="headerlink" title="发布"></a>发布</h4><p>不同组的发布流程不一样，不同产品的发布流程也不一样。比如服务器端的发布肯定比app端的发布周期短，因为我们拥有服务器的控制权，想什么时候做什么操作都是由我们说了算。而手机的话并不由我们掌控，用户可能处于关机状态，可能网络状态不连通，可能电池电量低，等等原因都可以导致手机端的更新速度不会有想象的快。同时相应的反馈也不会那么快地得到，比如这次更新有什么性能提升，失败率的变化，用户数据等等各种metrics。说了这些乱七八糟地，只是想说明，这部分内容不同组之间可能差别很大，这篇文章只是根据我我所在的组的观察体验所呈的一面之词。</p>
+<h5 id="特性开关"><a href="#特性开关" class="headerlink" title="特性开关"></a>特性开关</h5><p>任何一个特性的发布不能随随便便就提交或者发布，毕竟现有系统非常复杂，任何一个微小的改变都有可能带来意想不到的后果。因此，所有改动必须要用一个特性开关来保护，默认是关闭的。类似这样子：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (some_feature_is_enabled) &#123;</span><br><span class="line">	<span class="comment">// do something new</span></span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">	<span class="comment">// do something old</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样子就算代码发布了，它也不会被马上执行。这个特性开关的步骤是不局限于安卓开发的，就算是服务器开发，也会用到。对于我们来说的不同之处在于，我们的apk发布后，并不是所有用户立刻都会更新的，因此我们需要等3-4周的时间才能开始改变开关的值进而进行测试。据说3-4周还是这几年来流程优化的结果，之前一个特性开发完毕到用户真正看到区别的周期可能长达半年以上。如果是这样的话，就算出了问题，当时开发这个特性的工程师说不定都已经忘了他做的是什么了。难以想象在国内小步迭代快速开发的环境下，如果每个特性的发布都要半年，产品经理不得疯了？</p>
+<p>当然，特性开关不止是布尔类型的，还可以支持int，string等。因为有些特性，比如说修改某个缓存的ttl，开发者希望可以自定义任何值去做实验，从而决定最优。</p>
+<h5 id="实验"><a href="#实验" class="headerlink" title="实验"></a>实验</h5><p>至于以上这个开关的值是定义在哪里的，然后如何更新它，这就需要依赖于我们的实验系统了。这个值当然不能只存在apk里，不然的话改它还得再发布一个apk。实验系统是一个云端的服务，这个开关既在apk里存了一个默认值（关闭），在云端也存有一份。云端的那一份，我们通过实验系统可以修改。手机端会从实验系统里爬取这个开关的值，如果没有的话就用apk里定义的默认值，如果有的话就覆盖。</p>
+<p>当然，这个实验系统还负责做canary test（并不是所有用户取的开关值都是一样的）。我们在实验系统中可以定义一些阶段，每个阶段受众的数量是不一样的。这样子，可以通过这个实验系统逐步发布你所开发的新特性，避免引起巨大的影响。一旦发现某些指标不健康了，可以马上回退实验。只需要在实验系统中操作一下就可以，不需要额外发布新的apk，这一点还是非常棒的。</p>
+<h5 id="监控"><a href="#监控" class="headerlink" title="监控"></a>监控</h5><p>在实验中，我们如何决定要不要进入下一阶段呢？我们的监控系统就入场了。关于监控的工具，谷歌真是做的太完善了，全方位的都有，我真是数不过来了。在这一年多的工作中，跟监控相关的内部网站就用过不止十几个，而且我相信一定还有更多我没有用过的。有针对整个系统的监控，也有针对实验的监控，稍微讲讲后者的原理。</p>
+<p>对于每个实验，系统会自动分配一个实验id。对于实验中的不同阶段，实验id都是不一样的。当手机端尝试获取某个开关的值时，这个实验id也会同时被传到手机端。之后所有手机端产生的日志上传到日志服务器时都会带上这个实验id。由于同时可能有成百上千个实验在进行（毕竟安卓是个很大的组），用户上传日志时带上的实验id是一个很长的list。然后日志系统收到这些日志之后，就会根据不同的实验id分流，去不同的地方处理。当我们打开一个监控网站想要看看某个实验的效果时，输入相应的实验id，就会得到各种数据，比如请求次数，请求时间，内存使用情况，crash数量，电池使用时间，等等。这些metrics就可以作为指导我们决定需不需要进行实验下一步的指标。</p>
+<p>用的比较多的监控工具是不同组共享的，有很多比较general的指标，你还可以根据自己组的业务特性定义自己的指标。定义之后，在这些监控工具的网站上就可以看到了。有些日志跟组的业务特性是相关性很高，因此常用的监控工具并不能很好的处理他们。所以有的时候我们还需要自己从头创建一个监控工具，搭建data pipeline：从<em>指标定义</em>，<em>数据采集</em>，<em>数据分流</em>, <em>数据存储</em>，<em>数据分析</em>，<em>数据展示</em>都可以自己去完成。公司也提供了很多更底层的工具（相比而言，监控算是比较high level的工具吧）帮我们完成这一整个流程。比如用什么工具上传、 用什么工具分流、 用什么工具分析、 用什么工具展示。针对所有的步骤，公司内部都有相应的工具去做，非常方便。当然开源界也有很多类似的东西，理念都是一样的。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>这波“连载”终于写完了。其实还有很多可以说道说道的，有机会继续吧。到时候就不再以“Google一年工作感受”为题了，随便写点东西。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" title="Google一年工作感受(4)" target="_blank" rel="external">http://xidui.github.io/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" title="从谷歌离职"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" title="Google一年工作感受(3)"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/';
+        
+        this.page.identifier = 'Google一年工作感受(4)';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

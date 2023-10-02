@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>nodejs 源码浅析(一)——进程启动过程 | Hexo</title>
+  <meta name="description" content="项目文件结构 node项目结构比较简单，主要是两个文件夹，src和lib。其中src文件夹是node的C++源文件所在的目录，里面是进程的入口以及C++核心模块的代码。lib文件夹是js核心模块所在的目录，在编译的时候会使用v8自带的js2c.py（在tools目录下）将这些js代码编译成c代码，然后再编译进二进制可执行文件中。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="nodejs 源码浅析(一)——进程启动过程">
+<meta property="og:url" content="http://xidui.github.io/2015/03/05/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%B8%80%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="项目文件结构 node项目结构比较简单，主要是两个文件夹，src和lib。其中src文件夹是node的C++源文件所在的目录，里面是进程的入口以及C++核心模块的代码。lib文件夹是js核心模块所在的目录，在编译的时候会使用v8自带的js2c.py（在tools目录下）将这些js代码编译成c代码，然后再编译进二进制可执行文件中。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://xidui.github.io/images/BD085F41-D20F-4311-9189-367B3081F5E2.png">
+<meta property="og:image" content="http://xidui.github.io/images/0CBEC28A-B294-43F5-ACD4-41BD794D9C3F.png">
+<meta property="article:published_time" content="2015-03-06T01:09:16.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:47:50.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="nodejs">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xidui.github.io/images/BD085F41-D20F-4311-9189-367B3081F5E2.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2015/03/05/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%B8%80%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-nodejs-源码浅析-一进程启动过程" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      nodejs 源码浅析(一)——进程启动过程
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2015/03/05/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%B8%80%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/" class="article-date">
+	  <time datetime="2015-03-06T01:09:16.000Z" itemprop="datePublished">2015-03-05</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/nodejs/" rel="tag">nodejs</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2015/03/05/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%B8%80%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 5.7k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 21 mins.(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h2 id="项目文件结构"><a href="#项目文件结构" class="headerlink" title="项目文件结构"></a>项目文件结构</h2><p> node项目结构比较简单，主要是两个文件夹，src和lib。其中src文件夹是node的C++源文件所在的目录，里面是进程的入口以及C++核心模块的代码。lib文件夹是js核心模块所在的目录，在编译的时候会使用v8自带的js2c.py（在tools目录下）将这些js代码编译成c代码，然后再编译进二进制可执行文件中。</p>
+ <span id="more"></span>
+
+<img src="/images/BD085F41-D20F-4311-9189-367B3081F5E2.png" class="">
+
+<hr>
+<h2 id="node进程启动过程"><a href="#node进程启动过程" class="headerlink" title="node进程启动过程"></a>node进程启动过程</h2><h3 id="带着问题去学习："><a href="#带着问题去学习：" class="headerlink" title="带着问题去学习："></a>带着问题去学习：</h3><p>1.进程启动时有process对象，这个对象是怎么构建并传入javascript上下文的？<br>2.node的事件循环是怎么开始的？  </p>
+<p>通过一层层阅读代码，整理得进程启动调用时序图如下：</p>
+<img src="/images/0CBEC28A-B294-43F5-ACD4-41BD794D9C3F.png" class="">
+
+<p>项目的入口文件是node_main.cc，main函数就定义在这里，从这里开始一步步去寻找。<br>在CreateEnvironment接口中首先声明了process对象，然后将它放进env对象中：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Local&lt;Object&gt; process_object = process_template-&gt;<span class="built_in">GetFunction</span>()-&gt;<span class="built_in">NewInstance</span>();</span><br><span class="line">env-&gt;<span class="built_in">set_process_object</span>(process_object);</span><br></pre></td></tr></table></figure>
+<p>在SetupProcessObject()中，通过READONLY_PROPERTY以及NODE_SET_METHOD宏，给process对象添加各种属性和方法：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NODE_SET_METHOD</span>(process, <span class="string">&quot;setgid&quot;</span>, SetGid);</span><br><span class="line"><span class="built_in">NODE_SET_METHOD</span>(process, <span class="string">&quot;getgid&quot;</span>, GetGid);</span><br></pre></td></tr></table></figure>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">READONLY_PROPERTY</span>(versions,</span><br><span class="line">                  <span class="string">&quot;node&quot;</span>,</span><br><span class="line">                  <span class="built_in">OneByteString</span>(env-&gt;<span class="built_in">isolate</span>(), NODE_VERSION + <span class="number">1</span>));</span><br><span class="line"><span class="built_in">READONLY_PROPERTY</span>(versions,</span><br><span class="line">                  <span class="string">&quot;v8&quot;</span>,</span><br><span class="line">                  <span class="built_in">OneByteString</span>(env-&gt;<span class="built_in">isolate</span>(), V8::<span class="built_in">GetVersions</span>()));</span><br></pre></td></tr></table></figure>
+<p>在LoadEnvironment()中主要是做两件事:<br>1.编译并执行node.js文件</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Local&lt;String&gt; script_name = <span class="built_in">FIXED_ONE_BYTE_STRING</span>(env-&gt;<span class="built_in">isolate</span>(), <span class="string">&quot;node.js&quot;</span>);</span><br><span class="line">Local&lt;Value&gt; f_value = <span class="built_in">ExecuteString</span>(env, <span class="built_in">MainSource</span>(env), script_name);</span><br></pre></td></tr></table></figure>
+<p>2.将process对象作为参数执行node.js文件.</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">f-&gt;<span class="built_in">Call</span>(global, <span class="number">1</span>, &amp;arg);</span><br></pre></td></tr></table></figure>
+<p>可以看到node.js文件主体是一个函数，编译执行node.js文件事实上只是将函数注册进了内存，第二步才是真正的执行。</p>
+<p>在Start函数中：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">do</span> &#123;</span><br><span class="line">    more = <span class="built_in">uv_run</span>(env-&gt;<span class="built_in">event_loop</span>(), UV_RUN_ONCE);</span><br><span class="line">    <span class="keyword">if</span> (more == <span class="literal">false</span>) &#123;</span><br><span class="line">        <span class="built_in">EmitBeforeExit</span>(env);</span><br><span class="line">        <span class="comment">// Emit `beforeExit` if the loop became alive either after emitting</span></span><br><span class="line">        <span class="comment">// event, or after running some callbacks.</span></span><br><span class="line">        more = <span class="built_in">uv_loop_alive</span>(env-&gt;<span class="built_in">event_loop</span>());</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">uv_run</span>(env-&gt;<span class="built_in">event_loop</span>(), UN_RUN_NOWAIT) != <span class="number">0</span>)</span><br><span class="line">            more = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125; <span class="keyword">while</span> (more == <span class="literal">true</span>);</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2015/03/05/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%B8%80%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/" title="nodejs 源码浅析(一)——进程启动过程" target="_blank" rel="external">http://xidui.github.io/2015/03/05/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%B8%80%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2015/03/12/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%BA%8C-%E2%80%94%E2%80%94%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97%E7%BC%96%E8%AF%91%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/" title="nodejs 源码浅析(二)——核心模块编译加载原理"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2015/03/02/Nodejs-%E8%B0%83%E7%94%A8-C-%EF%BC%88addon%E7%9A%84%E5%AD%A6%E4%B9%A0%EF%BC%89/" title="Nodejs 调用 C++（addon的学习）"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2015/03/05/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%B8%80%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/';
+        
+        this.page.identifier = 'nodejs-源码浅析-一进程启动过程';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

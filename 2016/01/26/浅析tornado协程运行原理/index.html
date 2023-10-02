@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>浅析tornado协程运行原理 | Hexo</title>
+  <meta name="description" content="前言去年有一段时间一直在研究各种python协程框架，包括gevent, asyncio, tornado。阅读tornado的源码还是两个多月前的事了，一直想写一篇文章出来整理整理，但不知道从何处开始下笔。如果贴上一段段源码，然后通过语言来描述各种流程，这种类型的文章网上也有不少，况且这样子的讲解对于读者来说可能会比较乏味。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅析tornado协程运行原理">
+<meta property="og:url" content="http://xidui.github.io/2016/01/26/%E6%B5%85%E6%9E%90tornado%E5%8D%8F%E7%A8%8B%E8%BF%90%E8%A1%8C%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="前言去年有一段时间一直在研究各种python协程框架，包括gevent, asyncio, tornado。阅读tornado的源码还是两个多月前的事了，一直想写一篇文章出来整理整理，但不知道从何处开始下笔。如果贴上一段段源码，然后通过语言来描述各种流程，这种类型的文章网上也有不少，况且这样子的讲解对于读者来说可能会比较乏味。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://xidui.github.io/images/tornado_loop.svg">
+<meta property="article:published_time" content="2016-01-27T06:59:22.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:48:47.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="coroutine">
+<meta property="article:tag" content="tornado">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xidui.github.io/images/tornado_loop.svg">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2016/01/26/%E6%B5%85%E6%9E%90tornado%E5%8D%8F%E7%A8%8B%E8%BF%90%E8%A1%8C%E5%8E%9F%E7%90%86/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-浅析tornado协程运行原理" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      浅析tornado协程运行原理
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2016/01/26/%E6%B5%85%E6%9E%90tornado%E5%8D%8F%E7%A8%8B%E8%BF%90%E8%A1%8C%E5%8E%9F%E7%90%86/" class="article-date">
+	  <time datetime="2016-01-27T06:59:22.000Z" itemprop="datePublished">2016-01-26</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/coroutine/" rel="tag">coroutine</a>, <a class="article-tag-link-link" href="/tags/python/" rel="tag">python</a>, <a class="article-tag-link-link" href="/tags/tornado/" rel="tag">tornado</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2016/01/26/%E6%B5%85%E6%9E%90tornado%E5%8D%8F%E7%A8%8B%E8%BF%90%E8%A1%8C%E5%8E%9F%E7%90%86/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 29k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 1:45(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>去年有一段时间一直在研究各种python协程框架，包括gevent, asyncio, tornado。阅读tornado的源码还是两个多月前的事了，一直想写一篇文章出来整理整理，但不知道从何处开始下笔。如果贴上一段段源码，然后通过语言来描述各种流程，这种类型的文章网上也有不少，况且这样子的讲解对于读者来说可能会比较乏味。</p>
+<span id="more"></span>
+
+<p>我希望我对于源码分析的博文能够通过贴上更容易理解的图(当然也会有一些代码来辅助讲解)，这样的分享对读者来说会更加容易读懂，也更有价值。对自己要求高了，反而更难下笔，在试图画图的过程中，发现其实有好多细节自己也没有琢磨透，导致在如何组织这幅流程图的问题上斟酌了好久，不过好在最后终于捯饬出了一张自己觉得还算及格的流程图，作完图的时候我感觉比起之前刚阅读完代码时候的理解又上了一个层次。</p>
+<h3 id="流程图"><a href="#流程图" class="headerlink" title="流程图"></a>流程图</h3><p>tornado执行协程的方式有很多，但协程内部的运行原理没什么区别，这篇文章以<code>IOLoop</code>中的<code>run_sync</code>函数作为入口进行介绍。在开始进行分析之前，先把流程图贴上，其中的细节后面会通过代码辅助的方式一一讲解。</p>
+<img src="/images/tornado_loop.svg" class="">
+
+<p>在理解tornado运行原理的过程中，我是通过写一个demo，然后在源码中到处打断点，然后调试的方式，一遍遍走，到最后慢慢地理解。顺便也把我的demo代码贴上吧(看过我之前的一篇<a href="http://xidui.github.io/2015/10/29/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3python3-4-Asyncio%E5%BA%93%E4%B8%8ENode-js%E7%9A%84%E5%BC%82%E6%AD%A5IO%E6%9C%BA%E5%88%B6/">译文</a>的读者可能会发现，这个demo是从那儿仿照过来的)。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> tornado <span class="keyword">import</span> gen</span><br><span class="line"><span class="keyword">from</span> tornado.ioloop <span class="keyword">import</span> IOLoop</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_url</span>(<span class="params">url</span>):</span><br><span class="line">    wait_time = random.randint(<span class="number">1</span>, <span class="number">4</span>)</span><br><span class="line">    <span class="keyword">yield</span> gen.sleep(wait_time)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;URL &#123;&#125; took &#123;&#125;s to get!&#x27;</span>.<span class="built_in">format</span>(url, wait_time))</span><br><span class="line">    <span class="keyword">raise</span> gen.Return((url, wait_time))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">outer_coroutine</span>():</span><br><span class="line">    before = time.time()</span><br><span class="line">    coroutines = [get_url(url) <span class="keyword">for</span> url <span class="keyword">in</span> [<span class="string">&#x27;URL1&#x27;</span>, <span class="string">&#x27;URL2&#x27;</span>, <span class="string">&#x27;URL3&#x27;</span>]]</span><br><span class="line">    result = <span class="keyword">yield</span> coroutines</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(result)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;total time: &#123;&#125; seconds&#x27;</span>.<span class="built_in">format</span>(after - before))</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    IOLoop.current().run_sync(outer_coroutine)</span><br></pre></td></tr></table></figure>
+
+<p>有兴趣的读者可以自己去执行一下玩玩，输出类似于这样：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">URL URL1 took 1s to get!</span><br><span class="line">URL URL2 took 2s to get!</span><br><span class="line">URL URL3 took 2s to get!</span><br><span class="line">[(&#x27;URL1&#x27;, 1), (&#x27;URL2&#x27;, 2), (&#x27;URL3&#x27;, 2)]</span><br><span class="line">total time: 2.00353884697 seconds</span><br></pre></td></tr></table></figure>
+
+<h3 id="Coroutine"><a href="#Coroutine" class="headerlink" title="Coroutine"></a>Coroutine</h3><p>起初我以为调用协程后，返回的是一个生成器对象，毕竟<code>gen.coroutine</code>装饰在一个函数或者生成器上。看了源码发现，其实每次调用一个协程，它在获取了生成器对象之后，同时又对它执行了<code>next</code>操作来获取生成器内部yield出来的值，这个可以是一个值，当然也可以是一个由内部协程嵌套调用返回的future对象。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># gen.py</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">_make_coroutine_wrapper</span>(<span class="params">func, replace_callback</span>):</span><br><span class="line"><span class="meta">    @functools.wraps(<span class="params">func</span>)</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">wrapper</span>(<span class="params">*args, **kwargs</span>):</span><br><span class="line">        future = TracebackFuture()</span><br><span class="line">        <span class="comment"># 省略n行</span></span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            result = func(*args, **kwargs)</span><br><span class="line">        <span class="comment"># 省略n个except</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> <span class="built_in">isinstance</span>(result, types.GeneratorType):</span><br><span class="line">                <span class="keyword">try</span>:</span><br><span class="line">                    orig_stack_contexts = stack_context._state.contexts</span><br><span class="line">                    yielded = <span class="built_in">next</span>(result)    </span><br><span class="line">                    <span class="comment"># 如果func内部有yield关键字，result是一个生成器</span></span><br><span class="line">                    <span class="comment"># 如果func内部又调用了其它协程，yielded将会是由嵌套协程返回的future对象</span></span><br><span class="line">                    <span class="comment"># 省略n行</span></span><br><span class="line">                <span class="comment"># 省略n个except</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    Runner(result, future, yielded)</span><br><span class="line">                <span class="keyword">try</span>:</span><br><span class="line">                    <span class="keyword">return</span> future</span><br><span class="line">                <span class="keyword">finally</span>:</span><br><span class="line">                    future = <span class="literal">None</span></span><br><span class="line">        future.set_result(result)</span><br><span class="line">        <span class="keyword">return</span> future</span><br><span class="line">    <span class="keyword">return</span> wrapper</span><br></pre></td></tr></table></figure>
+
+<h3 id="Future"><a href="#Future" class="headerlink" title="Future"></a>Future</h3><p>我觉得<code>Future</code>在tornado中是一个很奇妙的对象，它是一个穿梭于协程和调度器之间的信使。提供了回调函数注册(当异步事件完成后，调用注册的回调)、中间结果保存、嵌套协程唤醒父协程(通过Runner实现)等功能。Coroutine和Future是一一对应的，可以从上节gen.coroutine装饰器的实现中看到。每调用一个协程，表达式所返回的就是一个Future对象，它所表达的意义为：<em>这个协程的内部各种异步逻辑执行完毕后，会把结果保存在这个Future中，同时调用这个Future中指定的回调函数</em>，而future中的回调函数是什么时候被注册的呢？那就是当前——你通过调用协程，返回了这个future对象的时候：<br>我们看看demo代码中run_sync的实现:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ioloop.py IOLoop</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">run_sync</span>(<span class="params">self, func, timeout=<span class="literal">None</span></span>):</span><br><span class="line">    future_cell = [<span class="literal">None</span>]</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">run</span>():</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            result = func()</span><br><span class="line">        <span class="keyword">except</span> Exception:</span><br><span class="line">            future_cell[<span class="number">0</span>] = TracebackFuture()</span><br><span class="line">            future_cell[<span class="number">0</span>].set_exc_info(sys.exc_info())</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">if</span> is_future(result):</span><br><span class="line">                future_cell[<span class="number">0</span>] = result</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                future_cell[<span class="number">0</span>] = TracebackFuture()</span><br><span class="line">                future_cell[<span class="number">0</span>].set_result(result)</span><br><span class="line">        self.add_future(future_cell[<span class="number">0</span>], <span class="keyword">lambda</span> future: self.stop())</span><br><span class="line">    self.add_callback(run)</span><br><span class="line">    <span class="keyword">if</span> timeout <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">        timeout_handle = self.add_timeout(self.time() + timeout, self.stop)</span><br><span class="line">    self.start()</span><br><span class="line">    <span class="keyword">if</span> timeout <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">        self.remove_timeout(timeout_handle)</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> future_cell[<span class="number">0</span>].done():</span><br><span class="line">        <span class="keyword">raise</span> TimeoutError(<span class="string">&#x27;Operation timed out after %s seconds&#x27;</span> % timeout)</span><br><span class="line">    <span class="keyword">return</span> future_cell[<span class="number">0</span>].result()</span><br></pre></td></tr></table></figure>
+<p>代码中先给<code>IOLoop</code>注册一个回调函数，等下个事件循环再执行内部定义的run函数。在run中通过<code>result = func()</code>执行协程<code>outer_coroutine</code>，result则是该协程对应的future对象。如果这个时候不对future作任何操作，最后这个future完成后也不会执行任何回调。所以在源码中通过<code>add_future</code>给这个future添加回调函数，也就是<code>self.stop()</code>，表明这个协程执行完毕后触发的操作是退出事件循环。</p>
+<p>其实IOLoop::add_future这个函数的命名会有些奇怪，刚读代码还不知道它是干嘛的(给IOLoop添加future是什么鬼？如果说是add_callback那还容易理解)，看了add_future的实现就明白了:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># ioloop.py IOLoop</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add_future</span>(<span class="params">self, future, callback</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Schedules a callback on the ``IOLoop`` when the given</span></span><br><span class="line"><span class="string">    `.Future` is finished.</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    The callback is invoked with one argument, the</span></span><br><span class="line"><span class="string">    `.Future`.</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">assert</span> is_future(future)</span><br><span class="line">    callback = stack_context.wrap(callback)</span><br><span class="line">    future.add_done_callback(</span><br><span class="line">        <span class="keyword">lambda</span> future: self.add_callback(callback, future))</span><br></pre></td></tr></table></figure>
+<p>它并不会给IOLoop添加future(也没有什么意义)，它只是给这个future添加回调函数而已，而这个回调函数是当这个future完成以后给IOLoop添加一个回调函数(有点绕，哈哈~给IOLoop添加的回调函数在这里就是stop)。<strong>因此当一个future完成以后，到最后future的回调函数真正被执行将会隔着一个IOLoop的事件循环，而不是马上会被执行</strong>。</p>
+<h3 id="Runner"><a href="#Runner" class="headerlink" title="Runner"></a>Runner</h3><p>如果说tornado是一辆车，那么Runner对象就是它的发动机，由它来调度各种协程来完成异步事件的操作。Coroutine和Runner也是一一对应的，每个Coroutine都是由一个Runner实例去执行的。协程包装着生成器(当然也有可能是函数，本文考虑比较复杂的协程嵌套调用的情况)，在生成器内部，也有可能会调用其它的协程，从而把内部协程的future对象yield出来，这个runner就会通过调用返回的方式(<code>future = next(gen)</code>)接到内部出来的future，并把它纳入执行的loop中，先是<code>handle_yielded</code>，再是<code>run</code>(中间会隔着一个或者多个IOLoop的事件循环，因此图中是用虚线表示的)。</p>
+<p>调度器中有两个比较重要的函数: <code>handle_yielded</code>和<code>run</code>，先来看<code>handle_yielded</code>:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># gen.py Runner</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">handle_yield</span>(<span class="params">self, yielded</span>):</span><br><span class="line">    <span class="comment"># Lists containing YieldPoints require stack contexts;</span></span><br><span class="line">    <span class="comment"># other lists are handled via multi_future in convert_yielded.</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">isinstance</span>(yielded, <span class="built_in">list</span>) <span class="keyword">and</span></span><br><span class="line">            <span class="built_in">any</span>(<span class="built_in">isinstance</span>(f, YieldPoint) <span class="keyword">for</span> f <span class="keyword">in</span> yielded)):</span><br><span class="line">        yielded = Multi(yielded)</span><br><span class="line">    <span class="keyword">elif</span> (<span class="built_in">isinstance</span>(yielded, <span class="built_in">dict</span>) <span class="keyword">and</span></span><br><span class="line">          <span class="built_in">any</span>(<span class="built_in">isinstance</span>(f, YieldPoint) <span class="keyword">for</span> f <span class="keyword">in</span> yielded.values())):</span><br><span class="line">        yielded = Multi(yielded)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="built_in">isinstance</span>(yielded, YieldPoint):</span><br><span class="line">        <span class="comment"># 省略n行</span></span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            self.future = convert_yielded(yielded)</span><br><span class="line">        <span class="keyword">except</span> BadYieldError:</span><br><span class="line">            self.future = TracebackFuture()</span><br><span class="line">            self.future.set_exc_info(sys.exc_info())</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> self.future.done() <span class="keyword">or</span> self.future <span class="keyword">is</span> moment:</span><br><span class="line">        self.io_loop.add_future(</span><br><span class="line">            self.future, <span class="keyword">lambda</span> f: self.run())</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">False</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">True</span></span><br></pre></td></tr></table></figure>
+<p>在runner中，<code>handle_yielded</code>用于处理generator返回的内部协程future对象。因为协程处理的大部分是异步的事件，所以内部协程yield出来的future对象状态多半还是处于未完成。这个时候收到该future的Runner所能做的也仅仅只是注册一个回调函数而已(上面源码的最后几行)。</p>
+<p>再来看看<code>run</code>:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># gen.py Runner</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">run</span>(<span class="params">self</span>):</span><br><span class="line">    <span class="string">&quot;&quot;&quot;Starts or resumes the generator, running until it reaches a</span></span><br><span class="line"><span class="string">    yield point that is not ready.</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="keyword">if</span> self.running <span class="keyword">or</span> self.finished:</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        self.running = <span class="literal">True</span></span><br><span class="line">        <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">            future = self.future</span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> future.done():</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            self.future = <span class="literal">None</span></span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                orig_stack_contexts = stack_context._state.contexts</span><br><span class="line">                exc_info = <span class="literal">None</span></span><br><span class="line"></span><br><span class="line">                <span class="keyword">try</span>:</span><br><span class="line">                    value = future.result()</span><br><span class="line">                <span class="keyword">except</span> Exception:</span><br><span class="line">                    self.had_exception = <span class="literal">True</span></span><br><span class="line">                    exc_info = sys.exc_info()</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> exc_info <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">                    yielded = self.gen.throw(*exc_info)</span><br><span class="line">                    exc_info = <span class="literal">None</span></span><br><span class="line">                <span class="keyword">else</span>:</span><br><span class="line">                    yielded = self.gen.send(value)</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> stack_context._state.contexts <span class="keyword">is</span> <span class="keyword">not</span> orig_stack_contexts:</span><br><span class="line">                    self.gen.throw(</span><br><span class="line">                        stack_context.StackContextInconsistentError(</span><br><span class="line">                            <span class="string">&#x27;stack_context inconsistency (probably caused &#x27;</span></span><br><span class="line">                            <span class="string">&#x27;by yield within a &quot;with StackContext&quot; block)&#x27;</span>))</span><br><span class="line">            <span class="keyword">except</span> (StopIteration, Return) <span class="keyword">as</span> e:</span><br><span class="line">                self.finished = <span class="literal">True</span></span><br><span class="line">                self.future = _null_future</span><br><span class="line">                <span class="keyword">if</span> self.pending_callbacks <span class="keyword">and</span> <span class="keyword">not</span> self.had_exception:</span><br><span class="line">                    <span class="comment"># If we ran cleanly without waiting on all callbacks</span></span><br><span class="line">                    <span class="comment"># raise an error (really more of a warning).  If we</span></span><br><span class="line">                    <span class="comment"># had an exception then some callbacks may have been</span></span><br><span class="line">                    <span class="comment"># orphaned, so skip the check in that case.</span></span><br><span class="line">                    <span class="keyword">raise</span> LeakedCallbackError(</span><br><span class="line">                        <span class="string">&quot;finished without waiting for callbacks %r&quot;</span> %</span><br><span class="line">                        self.pending_callbacks)</span><br><span class="line">                self.result_future.set_result(<span class="built_in">getattr</span>(e, <span class="string">&#x27;value&#x27;</span>, <span class="literal">None</span>))</span><br><span class="line">                self.result_future = <span class="literal">None</span></span><br><span class="line">                self._deactivate_stack_context()</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            <span class="keyword">except</span> Exception:</span><br><span class="line">                self.finished = <span class="literal">True</span></span><br><span class="line">                self.future = _null_future</span><br><span class="line">                self.result_future.set_exc_info(sys.exc_info())</span><br><span class="line">                self.result_future = <span class="literal">None</span></span><br><span class="line">                self._deactivate_stack_context()</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">            <span class="keyword">if</span> <span class="keyword">not</span> self.handle_yield(yielded):</span><br><span class="line">                <span class="keyword">return</span></span><br><span class="line">    <span class="keyword">finally</span>:</span><br><span class="line">        self.running = <span class="literal">False</span></span><br></pre></td></tr></table></figure>
+<p>run函数中的注释很好得诠释了它的作用，它就是不断地给传入Runner的generator执行next或者send操作(next或send都会让生成器继续运行，区别就是send会传一个参数进去)，直到generator返回的future对象状态还未完成，需要等待异步响应，这个时候它会调用handle_yielded。</p>
+<p>异步响应来了以后，就会调用这个run，为什么呢？因为在<code>handle_yielded</code>中给这个future注册了回调函数，回调函数就是<code>run</code>函数。然后在run函数中执行send(value)，让这个生成器继续运行，如此往复循环，直到generator退出。</p>
+<p><strong>generator退出就代表着这个Runner引擎所跑的Coroutine完成了，然后再给这个Coroutine所对应的Future对象执行set_result操作，表示这个协程的Future已完成了，可以执行它的回调函数了。</strong></p>
+<p><strong>这个回调函数对于outer_coroutine的future来说就是执行IOLoop的stop操作。对于inner_coroutine的future来说就是outer_coroutine对应的Runner的run操作。</strong> 这句话很绕，但是要是真读懂了，相信对于它的运行原理也就了解的差不多了。</p>
+<h3 id="IOLoop"><a href="#IOLoop" class="headerlink" title="IOLoop"></a>IOLoop</h3><p>IOLoop是一个很常见的模块，就是多路复用IO机制，好多项目中都有这一块的封装，原理都差不多。也可以参考<a target="_blank" rel="noopener" href="https://github.com/Long-live-shadowsocks/shadowsocks">shadowsocks</a>中的loop模块，它也是用python实现的基于多种不同操作系统io多路复用的封装。tornado的ioloop也是类似的，记录了一个个文件描述符和handler的pair，每当有io事件发生，就会调用该文件描述符对应的handler。如果这个handler是对future执行set_result操作，那连锁地就会执行Runner中的run，从而进入Runner的运行循环中，直到需要等待下一个异步事件，然后再向ioloop注册事件。。。如此循环往复。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>我讲的可能词不达意，毕竟我自己也是看了好多遍源码，才一步步理解清晰的。读者也不妨运行我的例子，逐步调试看看，说不定会有意想不到的收获。如果我哪些地方讲的欠妥当，也欢迎大家来指正。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2016/01/26/%E6%B5%85%E6%9E%90tornado%E5%8D%8F%E7%A8%8B%E8%BF%90%E8%A1%8C%E5%8E%9F%E7%90%86/" title="浅析tornado协程运行原理" target="_blank" rel="external">http://xidui.github.io/2016/01/26/%E6%B5%85%E6%9E%90tornado%E5%8D%8F%E7%A8%8B%E8%BF%90%E8%A1%8C%E5%8E%9F%E7%90%86/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2016/03/06/Go%E8%AF%AD%E8%A8%80%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" title="Go语言学习笔记"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2016/01/13/celery%E5%88%9D%E6%8E%A2/" title="celery初探"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2016/01/26/%E6%B5%85%E6%9E%90tornado%E5%8D%8F%E7%A8%8B%E8%BF%90%E8%A1%8C%E5%8E%9F%E7%90%86/';
+        
+        this.page.identifier = '浅析tornado协程运行原理';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

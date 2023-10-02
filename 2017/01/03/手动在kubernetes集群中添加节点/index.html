@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>手动在kubernetes集群中添加minon | Hexo</title>
+  <meta name="description" content="背景去年年中我使用ansible给项目部署了一个小型的kubernetes集群，部署源码可以在这里找到:contrib。随着业务的发展，目前的集群规模很有可能在明年迎来瓶颈，因此需要 扩容.当然可以继续通过之前的contrib去部署，不过有几点担忧：  目前的系统稳定地提供着服务，ansible脚本可能会对集群产生不可逆的影响 对于contrib的代码不是特别熟悉，不清楚它具体做了哪些步骤，总体来">
+<meta property="og:type" content="article">
+<meta property="og:title" content="手动在kubernetes集群中添加minon">
+<meta property="og:url" content="http://xidui.github.io/2017/01/03/%E6%89%8B%E5%8A%A8%E5%9C%A8kubernetes%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%B7%BB%E5%8A%A0%E8%8A%82%E7%82%B9/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="背景去年年中我使用ansible给项目部署了一个小型的kubernetes集群，部署源码可以在这里找到:contrib。随着业务的发展，目前的集群规模很有可能在明年迎来瓶颈，因此需要 扩容.当然可以继续通过之前的contrib去部署，不过有几点担忧：  目前的系统稳定地提供着服务，ansible脚本可能会对集群产生不可逆的影响 对于contrib的代码不是特别熟悉，不清楚它具体做了哪些步骤，总体来">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2017-01-04T05:30:30.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:48:40.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="kubernetes">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2017/01/03/%E6%89%8B%E5%8A%A8%E5%9C%A8kubernetes%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%B7%BB%E5%8A%A0%E8%8A%82%E7%82%B9/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-手动在kubernetes集群中添加节点" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      手动在kubernetes集群中添加minon
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2017/01/03/%E6%89%8B%E5%8A%A8%E5%9C%A8kubernetes%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%B7%BB%E5%8A%A0%E8%8A%82%E7%82%B9/" class="article-date">
+	  <time datetime="2017-01-04T05:30:30.000Z" itemprop="datePublished">2017-01-03</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/kubernetes/" rel="tag">kubernetes</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2017/01/03/%E6%89%8B%E5%8A%A8%E5%9C%A8kubernetes%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%B7%BB%E5%8A%A0%E8%8A%82%E7%82%B9/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 20k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 1:14(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>去年年中我使用ansible给项目部署了一个小型的kubernetes集群，部署源码可以在这里找到:<a target="_blank" rel="noopener" href="https://github.com/kubernetes/contrib/tree/master/ansible">contrib</a>。随着业务的发展，目前的集群规模很有可能在明年迎来瓶颈，因此需要 <strong>扩容</strong>.当然可以继续通过之前的contrib去部署，不过有几点担忧：</p>
+<ol>
+<li>目前的系统稳定地提供着服务，ansible脚本可能会对集群产生不可逆的影响</li>
+<li>对于contrib的代码不是特别熟悉，不清楚它具体做了哪些步骤，总体来说还是不放心</li>
+</ol>
+<p>同时，作为一个system admin，对于集群必须了如指掌才行。因此，在这里做一次演练，手动为已有集群添加节点，增进了解，也为今年的扩容做好准备工作。</p>
+<span id="more"></span>
+
+<h3 id="Let’s-do-it"><a href="#Let’s-do-it" class="headerlink" title="Let’s do it"></a>Let’s do it</h3><h4 id="0-已有环境"><a href="#0-已有环境" class="headerlink" title="0.已有环境"></a>0.已有环境</h4><p>当前系统里有2台机器:</p>
+<ol>
+<li>node-1-master<br>master上运行着 <strong>apiserver</strong>, <strong>control-manager</strong>, <strong>scheduler</strong>, <strong>kubelet</strong>, <strong>kube-proxy</strong></li>
+<li>node-2-slave-1<br>slave1上运行着 <strong>kubelet</strong>, <strong>kube-proxy</strong></li>
+</ol>
+<p>我们需要增加一台node-3-slave-2增加集群的运算能力。<br><strong>备注</strong>: 目前我们所有的kubernetes机器全都是基于<code>CentOS 7</code>及以上，kubernetes的版本为1.3</p>
+<h4 id="1-申请新机器"><a href="#1-申请新机器" class="headerlink" title="1.申请新机器"></a>1.申请新机器</h4><p>编辑<code>/etc/hosts</code>，在其中增加master和本机的dns条目(集群中都是以hostname来标示每一台机器，比如<a target="_blank" rel="noopener" href="https://node-1-master,这些dns条目在互联网上是无法解析的,必须在每台机器的/">https://node-1-master，这些dns条目在互联网上是无法解析的，必须在每台机器的</a> &#x2F;etc&#x2F;hosts 配置)。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xxx.xxx.xxx.xxx node-1-master</span><br><span class="line">xxx.xxx.xxx.xxx node-3-slave-2</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-安装docker"><a href="#2-安装docker" class="headerlink" title="2.安装docker"></a>2.安装docker</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">yum install docker</span><br><span class="line">systemctl <span class="built_in">enable</span> docker <span class="comment"># 开机自动启动</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="3-网络配置"><a href="#3-网络配置" class="headerlink" title="3.网络配置"></a>3.网络配置</h4><h5 id="3-1-安装firewalld"><a href="#3-1-安装firewalld" class="headerlink" title="3.1 安装firewalld"></a>3.1 安装firewalld</h5><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install firewalld</span><br></pre></td></tr></table></figure>
+<p>如果已经装好了，这步跳过，判断是否安装可以使用<code>rpm -q firewalld</code>检查。</p>
+<h5 id="3-2-配置kube-proxy网络环境"><a href="#3-2-配置kube-proxy网络环境" class="headerlink" title="3.2 配置kube-proxy网络环境"></a>3.2 配置kube-proxy网络环境</h5><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=8472/udp --permanent</span><br><span class="line">firewall-cmd --zone=public --add-port=10250/tcp --permanent</span><br><span class="line"></span><br><span class="line">firewall-cmd --permanent --direct --add-rule ipv4 filter FORWARD 1 -i flannel.1 -o docker0 -j ACCEPT -m comment --comment <span class="string">&quot;flannel subnet&quot;</span></span><br><span class="line">firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 1 -i docker0 -j ACCEPT -m comment --comment <span class="string">&quot;kube-proxy redirects&quot;</span></span><br><span class="line"></span><br><span class="line">systemctl restart firewalld</span><br></pre></td></tr></table></figure>
+
+<h5 id="3-2-安装配置flannel"><a href="#3-2-安装配置flannel" class="headerlink" title="3.2 安装配置flannel"></a>3.2 安装配置flannel</h5><p><strong>安装flannel</strong>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install flannel</span><br></pre></td></tr></table></figure>
+
+<p><strong>装完之后配置flannel参数</strong>, 文件位置在<code>/etc/sysconfig/flanneld</code>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Flanneld configuration options</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># etcd url location.  Point this to the server where etcd runs</span></span><br><span class="line">FLANNEL_ETCD_ENDPOINTS=<span class="string">&quot;http://node-1-master:2379&quot;</span>   <span class="comment"># 已修改</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># etcd config key.  This is the configuration key that flannel queries</span></span><br><span class="line"><span class="comment"># For address range assignment</span></span><br><span class="line">FLANNEL_ETCD_PREFIX=<span class="string">&quot;/cluster.local/network&quot;</span>         <span class="comment"># 已修改</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Any additional options that you want to pass</span></span><br><span class="line"><span class="comment"># By default, we just add a good guess for the network interface on Vbox.  Otherwise, Flannel will probably make the right guess.</span></span><br><span class="line">FLANNEL_OPTIONS=<span class="string">&quot;&quot;</span></span><br></pre></td></tr></table></figure>
+<p><em>以上环境变量根据自己集群的实际情况配置</em></p>
+<p><strong>重启相关服务</strong>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl <span class="built_in">enable</span> flanneld</span><br><span class="line">systemctl restart flanneld <span class="comment">#自动会从etcd获取新的ip地址段</span></span><br><span class="line">systemctl restart docker</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-安装kubelet和kube-proxy"><a href="#4-安装kubelet和kube-proxy" class="headerlink" title="4.安装kubelet和kube-proxy"></a>4.安装kubelet和kube-proxy</h4><p>在centos上两个服务只需要安装kubnernetes-node就可以了:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install kubernetes-node</span><br></pre></td></tr></table></figure>
+<h5 id="4-1-修改公用配置"><a href="#4-1-修改公用配置" class="headerlink" title="4.1 修改公用配置"></a>4.1 修改公用配置</h5><p>配置文件路径在<code>/etc/kubernetes/config</code>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">###</span></span><br><span class="line"><span class="comment"># kubernetes system config</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># The following values are used to configure various aspects of all</span></span><br><span class="line"><span class="comment"># kubernetes services, including</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment">#   kube-apiserver.service</span></span><br><span class="line"><span class="comment">#   kube-controller-manager.service</span></span><br><span class="line"><span class="comment">#   kube-scheduler.service</span></span><br><span class="line"><span class="comment">#   kubelet.service</span></span><br><span class="line"><span class="comment">#   kube-proxy.service</span></span><br><span class="line"><span class="comment"># logging to stderr means we get it in the systemd journal</span></span><br><span class="line">KUBE_LOGTOSTDERR=<span class="string">&quot;--logtostderr=true&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># journal message level, 0 is debug</span></span><br><span class="line">KUBE_LOG_LEVEL=<span class="string">&quot;--v=0&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Should this cluster be allowed to run privileged docker containers</span></span><br><span class="line">KUBE_ALLOW_PRIV=<span class="string">&quot;--allow-privileged=false&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># How the controller-manager, scheduler, and proxy find the apiserver</span></span><br><span class="line">KUBE_MASTER=<span class="string">&quot;--master=https://node-1-master&quot;</span>               <span class="comment"># 已修改</span></span><br></pre></td></tr></table></figure>
+<p><strong>一般情况下只需要修改<code>KUBE_MASTER</code>的配置就可以了，让它指向master机器的地址</strong></p>
+<h5 id="4-2-修改kubelet配置"><a href="#4-2-修改kubelet配置" class="headerlink" title="4.2 修改kubelet配置"></a>4.2 修改kubelet配置</h5><p>文件位置在<code>/etc/kubernetes/kubelet</code>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">###</span></span><br><span class="line"><span class="comment"># kubernetes kubelet (minion) config</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># The address for the info server to serve on (set to 0.0.0.0 or &quot;&quot; for all interfaces)</span></span><br><span class="line">KUBELET_ADDRESS=<span class="string">&quot;--address=0.0.0.0&quot;</span>                        <span class="comment"># 已修改</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># The port for the info server to serve on</span></span><br><span class="line"><span class="comment"># KUBELET_PORT=&quot;--port=10250&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># You may leave this blank to use the actual hostname</span></span><br><span class="line">KUBELET_HOSTNAME=<span class="string">&quot;--hostname-override=node-3-slave-2&quot;</span>      <span class="comment"># 已修改</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># location of the api-server</span></span><br><span class="line">KUBELET_API_SERVER=<span class="string">&quot;--api-servers=https://node-1-master&quot;</span>   <span class="comment"># 已修改</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># pod infrastructure container</span></span><br><span class="line">KUBELET_POD_INFRA_CONTAINER=<span class="string">&quot;--pod-infra-container-image=registry.access.redhat.com/rhel7/pod-infrastructure:latest&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Add your own!</span></span><br><span class="line"><span class="comment"># 这条配置是在第5步的时候加的!!!!!!!!!</span></span><br><span class="line">KUBELET_ARGS=<span class="string">&quot;--kubeconfig=/etc/kubernetes/kubelet.kubeconfig --config=/etc/kubernetes/manifests&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h5 id="4-3-修改kube-proxy配置"><a href="#4-3-修改kube-proxy配置" class="headerlink" title="4.3 修改kube-proxy配置"></a>4.3 修改kube-proxy配置</h5><p>文件位置在<code>/etc/kubernetes/proxy</code>:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">###</span></span><br><span class="line"><span class="comment"># kubernetes proxy config</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># default config should be adequate</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Add your own!</span></span><br><span class="line"><span class="comment"># 这条配置是在第5步的时候加的!!!!!!!!!</span></span><br><span class="line">KUBE_PROXY_ARGS=<span class="string">&quot;--kubeconfig=/etc/kubernetes/proxy.kubeconfig&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="5-权限相关"><a href="#5-权限相关" class="headerlink" title="5.权限相关"></a>5.权限相关</h4><h5 id="5-1-生成kubelet和kube-proxy的token"><a href="#5-1-生成kubelet和kube-proxy的token" class="headerlink" title="5.1 生成kubelet和kube-proxy的token"></a>5.1 生成kubelet和kube-proxy的token</h5><p>在这个步骤中我们生成新机器的kubelet和kube-proxy的token并把它注册到master机器中，值得注意的是，以下所有子步骤中的脚本都要在master执行。</p>
+<ol>
+<li><p>执行以下脚本在控制台获得一个token:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dd if=/dev/urandom bs=128 count=1 2&gt;/dev/null | base64 | tr -d &quot;=+/&quot; | dd bs=32 count=1 2&gt;/dev/null</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>将上一步生成的token复制到master机器的<code>/etc/kubernetes/tokens/known_hosts.csv</code>文件中:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 多加一行，表示该token代表slave2上的kubelet</span></span><br><span class="line">YOUR_KUBELET_TOKEN,system:kubelet-node-3-slave-2,system:kubelet-node-3-slave-2</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>重复步骤1，2，生成kube-proxy的token</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">YOUR_PROXY_TOKEN,system:proxy-node-3-slave-2,system:proxy-node-3-slave-2</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>重启相关服务</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl restart kube-apiserver</span><br><span class="line">systemctl restart kube-controller-manager</span><br><span class="line">systemctl restart kube-scheduler</span><br></pre></td></tr></table></figure></li>
+</ol>
+<h5 id="5-2-服务的认证"><a href="#5-2-服务的认证" class="headerlink" title="5.2 服务的认证"></a>5.2 服务的认证</h5><ol>
+<li><p>复制ca证书<br>将master中的<code>/etc/kubernetes/certs/ca.crt</code>复制到新机器同样的位置</p>
+</li>
+<li><p>在配置中多加一行(参照4.2,4.3的注释)，同时创建两个文件:<br>  2.1. <strong><code>/etc/kubernetes/kubelet.kubeconfig</code></strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: v1</span><br><span class="line">kind: Config</span><br><span class="line">current-context: kubelet-to-cluster.local</span><br><span class="line">preferences: &#123;&#125;</span><br><span class="line">clusters:</span><br><span class="line">- cluster:</span><br><span class="line">    certificate-authority: /etc/kubernetes/certs/ca.crt</span><br><span class="line">    server: https://node-1-master</span><br><span class="line">  name: cluster.local</span><br><span class="line">contexts:</span><br><span class="line">- context:</span><br><span class="line">    cluster: cluster.local</span><br><span class="line">    user: kubelet</span><br><span class="line">  name: kubelet-to-cluster.local</span><br><span class="line"><span class="built_in">users</span>:</span><br><span class="line">- name: kubelet</span><br><span class="line">  user:</span><br><span class="line">    token: YOUR_KUBELET_TOKEN</span><br></pre></td></tr></table></figure>
+<p>  2.2. <strong><code>/etc/kubernetes/proxy.kubeconfig</code></strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">apiVersion: v1</span><br><span class="line">kind: Config</span><br><span class="line">current-context: proxy-to-cluster.local</span><br><span class="line">preferences: &#123;&#125;</span><br><span class="line">contexts:</span><br><span class="line">- context:</span><br><span class="line">    cluster: cluster.local</span><br><span class="line">    user: proxy</span><br><span class="line">  name: proxy-to-cluster.local</span><br><span class="line">clusters:</span><br><span class="line">- cluster:</span><br><span class="line">    certificate-authority: /etc/kubernetes/certs/ca.crt</span><br><span class="line">    server: https://node-1-master</span><br><span class="line">  name: cluster.local</span><br><span class="line"><span class="built_in">users</span>:</span><br><span class="line">- name: proxy</span><br><span class="line">  user:</span><br><span class="line">    token: YOUR_PROXY_TOKEN</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>重启并配置开机自动启动</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">systemctl <span class="built_in">enable</span> kubelet</span><br><span class="line">systemctl <span class="built_in">enable</span> kube-proxy</span><br><span class="line">systemctl restart kubelet</span><br><span class="line">systemctl restart kube-proxy</span><br></pre></td></tr></table></figure></li>
+</ol>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2017/01/03/%E6%89%8B%E5%8A%A8%E5%9C%A8kubernetes%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%B7%BB%E5%8A%A0%E8%8A%82%E7%82%B9/" title="手动在kubernetes集群中添加minon" target="_blank" rel="external">http://xidui.github.io/2017/01/03/%E6%89%8B%E5%8A%A8%E5%9C%A8kubernetes%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%B7%BB%E5%8A%A0%E8%8A%82%E7%82%B9/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2017/02/06/%E5%9C%A8kubernetes%E4%B8%AD%E9%85%8D%E7%BD%AEskydns/" title="在kubernetes中配置skydns"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2016/07/13/nginx%E2%80%94%E2%80%94map%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/" title="nginx中map模块的使用及性能测试"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2017/01/03/%E6%89%8B%E5%8A%A8%E5%9C%A8kubernetes%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%B7%BB%E5%8A%A0%E8%8A%82%E7%82%B9/';
+        
+        this.page.identifier = '手动在kubernetes集群中添加节点';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

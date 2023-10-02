@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>python异步框架中协程之间的并行 | Hexo</title>
+  <meta name="description" content="前言python中的异步协程框架有很多，比如 tornado, gevent, asyncio, twisted 等。协程带来的是低消耗的并发，在等待IO事件的时候可以把控制权交给其它的协程，这个是它并发能力的保障。但是光有并发还是不够的，高并发并不能保证低延迟，因为一个业务逻辑的流程可能包含多个异步IO的请求，如果这些异步IO的请求是一个一个逐步执行的，虽然server的吞吐量还是很高，但是每个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="python异步框架中协程之间的并行">
+<meta property="og:url" content="http://xidui.github.io/2015/11/11/python%E5%BC%82%E6%AD%A5%E6%A1%86%E6%9E%B6%E5%8D%8F%E7%A8%8B%E4%B9%8B%E9%97%B4%E7%9A%84%E5%B9%B6%E8%A1%8C/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="前言python中的异步协程框架有很多，比如 tornado, gevent, asyncio, twisted 等。协程带来的是低消耗的并发，在等待IO事件的时候可以把控制权交给其它的协程，这个是它并发能力的保障。但是光有并发还是不够的，高并发并不能保证低延迟，因为一个业务逻辑的流程可能包含多个异步IO的请求，如果这些异步IO的请求是一个一个逐步执行的，虽然server的吞吐量还是很高，但是每个">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2015-11-12T00:20:21.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:48:22.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="并发">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="coroutine">
+<meta property="article:tag" content="tornado">
+<meta property="article:tag" content="asyncio">
+<meta property="article:tag" content="gevent">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2015/11/11/python%E5%BC%82%E6%AD%A5%E6%A1%86%E6%9E%B6%E5%8D%8F%E7%A8%8B%E4%B9%8B%E9%97%B4%E7%9A%84%E5%B9%B6%E8%A1%8C/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-python异步框架协程之间的并行" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      python异步框架中协程之间的并行
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2015/11/11/python%E5%BC%82%E6%AD%A5%E6%A1%86%E6%9E%B6%E5%8D%8F%E7%A8%8B%E4%B9%8B%E9%97%B4%E7%9A%84%E5%B9%B6%E8%A1%8C/" class="article-date">
+	  <time datetime="2015-11-12T00:20:21.000Z" itemprop="datePublished">2015-11-11</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/asyncio/" rel="tag">asyncio</a>, <a class="article-tag-link-link" href="/tags/coroutine/" rel="tag">coroutine</a>, <a class="article-tag-link-link" href="/tags/gevent/" rel="tag">gevent</a>, <a class="article-tag-link-link" href="/tags/python/" rel="tag">python</a>, <a class="article-tag-link-link" href="/tags/tornado/" rel="tag">tornado</a>, <a class="article-tag-link-link" href="/tags/%E5%B9%B6%E5%8F%91/" rel="tag">并发</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2015/11/11/python%E5%BC%82%E6%AD%A5%E6%A1%86%E6%9E%B6%E5%8D%8F%E7%A8%8B%E4%B9%8B%E9%97%B4%E7%9A%84%E5%B9%B6%E8%A1%8C/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 26k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 1:33(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>python中的异步协程框架有很多，比如 <em>tornado</em>, <em>gevent</em>, <em>asyncio</em>, <em>twisted</em> 等。协程带来的是低消耗的并发，在等待IO事件的时候可以把控制权交给其它的协程，这个是它并发能力的保障。但是光有并发还是不够的，高并发并不能保证低延迟，因为一个业务逻辑的流程可能包含多个异步IO的请求，如果这些异步IO的请求是一个一个逐步执行的，虽然server的吞吐量还是很高，但是每个请求的延迟就会很大。为了解决这类问题，每个框架都有各自不同的方式，下面我们就来分别看看，它们都是怎么管理互不相关协程之间的并行的。</p>
+<p>如果对于异步IO不了解的朋友，可以先去了解下相关资料：epoll, select, aio等。</p>
+<span id="more"></span>
+
+<h3 id="asyncio"><a href="#asyncio" class="headerlink" title="asyncio"></a>asyncio</h3><p><strong>python3.4及以上</strong><br>在我的博客里有一篇关于asyncio库的<a href="http://xidui.github.io/2015/10/29/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3python3-4-Asyncio%E5%BA%93%E4%B8%8ENode-js%E7%9A%84%E5%BC%82%E6%AD%A5IO%E6%9C%BA%E5%88%B6/">译文</a>，里面最后一部分就有介绍它是如何管理互不相关的协程的。这里我们还是引用它，并给他增加了计时的功能来更好地阐述协程是如何并行的：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> asyncio</span><br><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@asyncio.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_url</span>(<span class="params">url</span>):</span><br><span class="line">    wait_time = random.randint(<span class="number">1</span>, <span class="number">4</span>)</span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">from</span> asyncio.sleep(wait_time)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;URL &#123;&#125; took &#123;&#125;s to get!&#x27;</span>.<span class="built_in">format</span>(url, wait_time))</span><br><span class="line">    <span class="keyword">return</span> url, wait_time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@asyncio.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">process_as_results_come_in</span>():</span><br><span class="line">    before = time.time()</span><br><span class="line">    coroutines = [get_url(url) <span class="keyword">for</span> url <span class="keyword">in</span> [<span class="string">&#x27;URL1&#x27;</span>, <span class="string">&#x27;URL2&#x27;</span>, <span class="string">&#x27;URL3&#x27;</span>]]</span><br><span class="line">    <span class="keyword">for</span> coroutine <span class="keyword">in</span> asyncio.as_completed(coroutines):</span><br><span class="line">        url, wait_time = <span class="keyword">yield</span> <span class="keyword">from</span> coroutine</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;Coroutine for &#123;&#125; is done&#x27;</span>.<span class="built_in">format</span>(url))</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;total time: &#123;&#125; seconds&#x27;</span>.<span class="built_in">format</span>(after - before))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@asyncio.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">process_once_everything_ready</span>():</span><br><span class="line">    before = time.time()</span><br><span class="line">    coroutines = [get_url(url) <span class="keyword">for</span> url <span class="keyword">in</span> [<span class="string">&#x27;URL1&#x27;</span>, <span class="string">&#x27;URL2&#x27;</span>, <span class="string">&#x27;URL3&#x27;</span>]]</span><br><span class="line">    results = <span class="keyword">yield</span> <span class="keyword">from</span> asyncio.gather(*coroutines)</span><br><span class="line">    <span class="built_in">print</span>(results)</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;total time: &#123;&#125; seconds&#x27;</span>.<span class="built_in">format</span>(after - before))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">main</span>():</span><br><span class="line">    loop = asyncio.get_event_loop()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;First, process results as they come in:&quot;</span>)</span><br><span class="line">    loop.run_until_complete(process_as_results_come_in())</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\nNow, process results once they are all ready:&quot;</span>)</span><br><span class="line">    loop.run_until_complete(process_once_everything_ready())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    main()</span><br></pre></td></tr></table></figure>
+<p>代码输出：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">$ python3 asyncio_test.py</span><br><span class="line">First, process results as they come <span class="keyword">in</span>:</span><br><span class="line">URL URL3 took 1s to get!</span><br><span class="line">Coroutine <span class="keyword">for</span> URL3 is <span class="keyword">done</span></span><br><span class="line">URL URL2 took 2s to get!</span><br><span class="line">Coroutine <span class="keyword">for</span> URL2 is <span class="keyword">done</span></span><br><span class="line">URL URL1 took 3s to get!</span><br><span class="line">Coroutine <span class="keyword">for</span> URL1 is <span class="keyword">done</span></span><br><span class="line">total time: 3.001127004623413 seconds</span><br><span class="line"></span><br><span class="line">Now, process results once they are all ready:</span><br><span class="line">URL URL1 took 1s to get!</span><br><span class="line">URL URL3 took 1s to get!</span><br><span class="line">URL URL2 took 4s to get!</span><br><span class="line">[(<span class="string">&#x27;URL1&#x27;</span>, 1), (<span class="string">&#x27;URL2&#x27;</span>, 4), (<span class="string">&#x27;URL3&#x27;</span>, 1)]</span><br><span class="line">total time: 4.004215955734253 seconds</span><br></pre></td></tr></table></figure>
+
+<p>asyncio里面，给了两种方案，都是可以做到协程的并行。可以看到函数执行的总时间几乎等于其中最慢的协程的运行时间。第一种方案中把协程包了起来<code>asyncio.as_completed(coroutines)</code>，其实这里直接用<code>coroutines</code>也是可以执行的，不过那样的话协程之间就不是并行的了，而是串行执行了，整个函数的运行时间就是所有协程的时间之和。</p>
+<ul>
+<li><code>as_completed</code>的方式：协程一旦运行结束，马上处理结果</li>
+<li><code>gather</code>的方式：所有协程完成后统一返回结果并处理<br><code>as_completed</code>的方式灵活性更大，它也可以稍作修改，变成<code>gather</code>的方式(把所有结果保存起来，最后再处理，只不过暂时保存起来的过程交给用户处理了，而gather则是由框架代为处理)。还不知道<code>gather</code>内部的实现方式是否用到了<code>as_completed</code>，<strong>暂时在这里先留个问题，以后再来回答</strong>。</li>
+</ul>
+<h3 id="tornado"><a href="#tornado" class="headerlink" title="tornado"></a>tornado</h3><p><strong>python2.7及以上</strong><br>tornado的代码就简短很多，直接yield一个coroutine的列表出去就好了：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> random</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> tornado <span class="keyword">import</span> gen</span><br><span class="line"><span class="keyword">from</span> tornado.ioloop <span class="keyword">import</span> IOLoop</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_url</span>(<span class="params">url</span>):</span><br><span class="line">    wait_time = random.randint(<span class="number">1</span>, <span class="number">4</span>)</span><br><span class="line">    <span class="keyword">yield</span> gen.sleep(wait_time)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;URL &#123;&#125; took &#123;&#125;s to get!&#x27;</span>.<span class="built_in">format</span>(url, wait_time))</span><br><span class="line">    <span class="keyword">raise</span> gen.Return((url, wait_time))</span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">process_once_everything_ready</span>():</span><br><span class="line">    before = time.time()</span><br><span class="line">    coroutines = [get_url(url) <span class="keyword">for</span> url <span class="keyword">in</span> [<span class="string">&#x27;URL1&#x27;</span>, <span class="string">&#x27;URL2&#x27;</span>, <span class="string">&#x27;URL3&#x27;</span>]]</span><br><span class="line">    result = <span class="keyword">yield</span> coroutines</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(result)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;total time: &#123;&#125; seconds&#x27;</span>.<span class="built_in">format</span>(after - before))</span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">process_once_everything_ready_2</span>():</span><br><span class="line">    before = time.time()</span><br><span class="line">    coroutines = [get_url(url) <span class="keyword">for</span> url <span class="keyword">in</span> [<span class="string">&#x27;URL1&#x27;</span>, <span class="string">&#x27;URL2&#x27;</span>, <span class="string">&#x27;URL3&#x27;</span>]]</span><br><span class="line">    results = <span class="keyword">yield</span> gen.Multi(coroutines)</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(results)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;total time: &#123;&#125; seconds&#x27;</span>.<span class="built_in">format</span>(after - before))</span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">process_as_results_come_in</span>():</span><br><span class="line">    before = time.time()</span><br><span class="line">    coroutines = [get_url(url) <span class="keyword">for</span> url <span class="keyword">in</span> [<span class="string">&#x27;URL1&#x27;</span>, <span class="string">&#x27;URL2&#x27;</span>, <span class="string">&#x27;URL3&#x27;</span>]]</span><br><span class="line">    wait_iterator = gen.WaitIterator(*coroutines)</span><br><span class="line">    <span class="keyword">while</span> <span class="keyword">not</span> wait_iterator.done():</span><br><span class="line">        url, wait_time = <span class="keyword">yield</span> wait_iterator.<span class="built_in">next</span>()</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;Coroutine for &#123;&#125; is done&#x27;</span>.<span class="built_in">format</span>(url))</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;total time: &#123;&#125; seconds&#x27;</span>.<span class="built_in">format</span>(after - before))</span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">amazing_test</span>():</span><br><span class="line">    before = time.time()</span><br><span class="line">    coroutines = [get_url(url) <span class="keyword">for</span> url <span class="keyword">in</span> [<span class="string">&#x27;URL1&#x27;</span>, <span class="string">&#x27;URL2&#x27;</span>, <span class="string">&#x27;URL3&#x27;</span>]]</span><br><span class="line">    <span class="keyword">yield</span> gen.sleep(<span class="number">5</span>)</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;total time: &#123;&#125; seconds&#x27;</span>.<span class="built_in">format</span>(after - before))</span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">process_together_or_once_depend_on_the_sequence</span>():</span><br><span class="line">    before = time.time()</span><br><span class="line">    coroutines = [get_url(url) <span class="keyword">for</span> url <span class="keyword">in</span> [<span class="string">&#x27;URL1&#x27;</span>, <span class="string">&#x27;URL2&#x27;</span>, <span class="string">&#x27;URL3&#x27;</span>]]</span><br><span class="line">    <span class="keyword">for</span> future <span class="keyword">in</span> coroutines:</span><br><span class="line">        url, wait_time = <span class="keyword">yield</span> future</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;Coroutine for &#123;&#125; is done&#x27;</span>.<span class="built_in">format</span>(url))</span><br><span class="line">    after = time.time()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;total time: &#123;&#125; seconds&#x27;</span>.<span class="built_in">format</span>(after - before))</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;First, process results as they come in:&quot;</span>)</span><br><span class="line">    IOLoop.current().run_sync(process_as_results_come_in)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\nNow, process results once they are all ready:&quot;</span>)</span><br><span class="line">    IOLoop.current().run_sync(process_once_everything_ready)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\nprocess results once they are all ready 2:&quot;</span>)</span><br><span class="line">    IOLoop.current().run_sync(process_once_everything_ready_2)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\nAmazing test:&quot;</span>)</span><br><span class="line">    IOLoop.current().run_sync(amazing_test)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&quot;\nprocess_together_or_once_depend_on_the_sequence:&quot;</span>)</span><br><span class="line">    IOLoop.current().run_sync(process_together_or_once_depend_on_the_sequence)</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>输出：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">$ python3 tornado_test.py</span><br><span class="line">First, process results as they come <span class="keyword">in</span>:</span><br><span class="line">URL URL2 took 2s to get!</span><br><span class="line">Coroutine <span class="keyword">for</span> URL2 is <span class="keyword">done</span></span><br><span class="line">URL URL1 took 3s to get!</span><br><span class="line">URL URL3 took 3s to get!</span><br><span class="line">Coroutine <span class="keyword">for</span> URL1 is <span class="keyword">done</span></span><br><span class="line">Coroutine <span class="keyword">for</span> URL3 is <span class="keyword">done</span></span><br><span class="line">total time: 3.00437688828 seconds</span><br><span class="line"></span><br><span class="line">Now, process results once they are all ready:</span><br><span class="line">URL URL2 took 1s to get!</span><br><span class="line">URL URL3 took 1s to get!</span><br><span class="line">URL URL1 took 4s to get!</span><br><span class="line">[(<span class="string">&#x27;URL1&#x27;</span>, 4), (<span class="string">&#x27;URL2&#x27;</span>, 1), (<span class="string">&#x27;URL3&#x27;</span>, 1)]</span><br><span class="line">total time: 4.000649929046631 seconds</span><br><span class="line"></span><br><span class="line">process results once they are all ready 2:</span><br><span class="line">URL URL2 took 1s to get!</span><br><span class="line">URL URL3 took 1s to get!</span><br><span class="line">URL URL1 took 4s to get!</span><br><span class="line">[(<span class="string">&#x27;URL1&#x27;</span>, 4), (<span class="string">&#x27;URL2&#x27;</span>, 1), (<span class="string">&#x27;URL3&#x27;</span>, 1)]</span><br><span class="line">total time: 4.004122018814087 seconds</span><br><span class="line"></span><br><span class="line">Amazing <span class="built_in">test</span>:</span><br><span class="line">URL URL3 took 1s to get!</span><br><span class="line">URL URL1 took 2s to get!</span><br><span class="line">URL URL2 took 4s to get!</span><br><span class="line">total time: 5.004791975021362 seconds</span><br><span class="line"></span><br><span class="line">nprocess_together_or_once_depend_on_the_sequence:</span><br><span class="line">URL URL1 took 1s to get!</span><br><span class="line">URL URL3 took 1s to get!</span><br><span class="line">Coroutine <span class="keyword">for</span> URL1 is <span class="keyword">done</span></span><br><span class="line">URL URL2 took 2s to get!</span><br><span class="line">Coroutine <span class="keyword">for</span> URL2 is <span class="keyword">done</span></span><br><span class="line">Coroutine <span class="keyword">for</span> URL3 is <span class="keyword">done</span></span><br><span class="line">total time: 2.0033011436462402 seconds</span><br></pre></td></tr></table></figure>
+<p>tornado的例子，参考了官方文档我给了5个（<em>为啥框架提供这么多？选择太多反而不好，不是吗</em>）。在这里，所有例子总的运行时间都是等于最长的协程的运行时间，这点合理！在这5个例子中，我给了一个 <em>Amazing test</em> ，因为自己乱试，看到这个效果的时候，感觉对tornado的三观有点被毁了，不过后来还是搞懂了，下面我就来解释一下。</p>
+<p>tornado的协程中yield出去的对象是什么？起初，我以为就是一个协程的实例(也就是generator呀)，跟<code>asyncio</code>一样。通过一个协程函数创建一个实例，如果它不运行，或者不把它yield出去，那它应该就永远不会被运行。在asyncio中是这样的(声明了一个协程，如果不用<code>yield from</code>把它交给调度器，那它就不会运行)，但是在tornado中，一旦一个协程的实例被声明了，比如上面代码中的<code>get_url(&#39;123&#39;)</code>，那么它就已经被注册进事件循环了，该表达式返回的是一个Future，所以你yield出去的就是一个Future对象。正是因为它已经被注册了，所以当你调用<code>gen.sleep(5)</code>的时候，注册的三个事件一一被执行完，只是由于它们返回的Future并没有交给调度器，调度器不知道完成以后回调给哪里，所以执行完了就结束了。如果不调用<code>gen.sleep(5)</code>，那么还未等所有事件执行完，主线程就结束了，也不会打印出三个事件的运行结果。可以看出，在tornado中Future是调度器与协程的通信官，它在协程之间被传来传去，而在asyncio中，协程(生成器)自身担当这个角色被传递。代码中的coroutine的变量名其实不准确，应该是future，只是当初试的时候还以为是coroutine，故此命名。</p>
+<p>再来看看代码中的其它例子。<code>gen</code>模块提供了 <em>WaitIterator</em> 方法来封装一系列的future，这样就可以做到一旦有请求返回，就立即处理，同时也满足请求之间的并发。</p>
+<p>对于<code>process_once_everything_ready</code>，我给了两个用法，其实准确地说，最后剩下的一种方式也是这样的机制。这里我再提一个问题：<strong>gen.Multi方法存在的意义是什么呢？</strong> 毕竟直接yield一个future的list就可以达到一样的效果(并行+所有请求结果统一处理)。</p>
+<p>上面讲了这么多，最后一种方式其实也是可以理解了：声明了协程以后已自动纳入事件循环，与yield与否无关，同时因为list是有序的，for循环按顺序一个一个去yield，所以即使URL3完成得比URL2快，在主协程中future被yield的顺序永远是(1,2,3)，结果处理的顺序当然也就是(1,2,3)了。</p>
+<p>现在tornado也已经集成了<code>asyncio</code>以及<code>twisted</code>模块，可以利用它们的方式去做并行，这里就不展开了。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><ul>
+<li>在协程框架中的sleep，都不能用原来<code>time</code>模块中的sleep了，不然它会阻塞整个线程，而所有协程都是运行在同一个线程中的。可以看到两个框架都会sleep作了封装<code>gen.sleep()</code>和<code>asyncio.sleep()</code>，内部的实现上，它们都是注册了一个定时器在eventloop中，把CPU的控制权交给其它协程。</li>
+<li>从协程的实现原理层面去说，也是比较容易理解这种并行方式的。两个框架都是把一个生成器对象的列表yield出去，交给调度器，再由调度器分别执行并注册回调，所以才能够实现并行。</li>
+</ul>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2015/11/11/python%E5%BC%82%E6%AD%A5%E6%A1%86%E6%9E%B6%E5%8D%8F%E7%A8%8B%E4%B9%8B%E9%97%B4%E7%9A%84%E5%B9%B6%E8%A1%8C/" title="python异步框架中协程之间的并行" target="_blank" rel="external">http://xidui.github.io/2015/11/11/python%E5%BC%82%E6%AD%A5%E6%A1%86%E6%9E%B6%E5%8D%8F%E7%A8%8B%E4%B9%8B%E9%97%B4%E7%9A%84%E5%B9%B6%E8%A1%8C/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2015/11/28/%E5%A6%82%E4%BD%95%E8%AE%A9%E8%BF%9B%E7%A8%8B%E5%90%8E%E5%8F%B0%E8%BF%90%E8%A1%8C%E2%80%94%E2%80%94%E5%A4%9A%E7%A7%8D%E6%96%B9%E6%A1%88%E6%95%B4%E7%90%86/" title="如何让进程后台运行——多种方案整理"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2015/11/03/leetcode212-%E5%AD%97%E5%85%B8%E6%A0%91/" title="leetcode212_字典树"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2015/11/11/python%E5%BC%82%E6%AD%A5%E6%A1%86%E6%9E%B6%E5%8D%8F%E7%A8%8B%E4%B9%8B%E9%97%B4%E7%9A%84%E5%B9%B6%E8%A1%8C/';
+        
+        this.page.identifier = 'python异步框架协程之间的并行';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

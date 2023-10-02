@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>async源码阅读笔记 | Hexo</title>
+  <meta name="description" content="又是两周没写博客了，圣诞夜来水一发~今天稍微看了下async的源码，感觉很简短精炼，总共也才1000多行代码，好多值得学习的地方。主要看的是waterfall模块，由于源码中有好多不同接口公用的部分，因此看完waterfall这个接口的整个流程，差不多就cover了一半的async源码了。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="async源码阅读笔记">
+<meta property="og:url" content="http://xidui.github.io/2015/12/24/async%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E7%AC%94%E8%AE%B0/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="又是两周没写博客了，圣诞夜来水一发~今天稍微看了下async的源码，感觉很简短精炼，总共也才1000多行代码，好多值得学习的地方。主要看的是waterfall模块，由于源码中有好多不同接口公用的部分，因此看完waterfall这个接口的整个流程，差不多就cover了一半的async源码了。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2015-12-25T01:05:38.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:46:46.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="js">
+<meta property="article:tag" content="async">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2015/12/24/async%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E7%AC%94%E8%AE%B0/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-async源码阅读笔记" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      async源码阅读笔记
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2015/12/24/async%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E7%AC%94%E8%AE%B0/" class="article-date">
+	  <time datetime="2015-12-25T01:05:38.000Z" itemprop="datePublished">2015-12-24</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/async/" rel="tag">async</a>, <a class="article-tag-link-link" href="/tags/js/" rel="tag">js</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2015/12/24/async%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E7%AC%94%E8%AE%B0/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 34k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 2:04(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <p>又是两周没写博客了，圣诞夜来水一发~<br>今天稍微看了下async的源码，感觉很简短精炼，总共也才1000多行代码，好多值得学习的地方。主要看的是<code>waterfall</code>模块，由于源码中有好多不同接口公用的部分，因此看完waterfall这个接口的整个流程，差不多就cover了一半的async源码了。</p>
+<span id="more"></span>
+
+<h3 id="造轮子"><a href="#造轮子" class="headerlink" title="造轮子"></a>造轮子</h3><p>在没有太多使用经验的情况下，直接看源码，可能会遇到一些不明所以的细节，看了可能也只能吸收很少的一部分。最好的方式我觉得莫过于自己先造一遍轮子，再看源码了。</p>
+<h4 id="接口需求"><a href="#接口需求" class="headerlink" title="接口需求"></a>接口需求</h4><p><em>waterfall这个接口的命名还是很形象的</em></p>
+<p><strong>我要定义一个waterfall函数，满足以下需求:</strong></p>
+<ul>
+<li>可以按照Array给定的顺序逐个执行</li>
+<li>所有函数执行完毕后，调用指定的回调函数</li>
+<li>前一个函数的输出作为后一个函数的输入</li>
+<li>中途某一个函数执行失败，直接调用回调函数结束</li>
+</ul>
+<p><strong>需求的代码描述如下:</strong></p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span>.<span class="title function_">waterfall</span>([</span><br><span class="line">    <span class="keyword">function</span>(<span class="params">callback</span>) &#123;</span><br><span class="line">        <span class="title function_">callback</span>(<span class="literal">null</span>, <span class="string">&#x27;one&#x27;</span>, <span class="string">&#x27;two&#x27;</span>);</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="keyword">function</span>(<span class="params">arg1, arg2, callback</span>) &#123;</span><br><span class="line">    	  <span class="variable language_">console</span>.<span class="title function_">log</span>(arg1);</span><br><span class="line">    	  <span class="variable language_">console</span>.<span class="title function_">log</span>(arg2);</span><br><span class="line">      	<span class="comment">// arg1 now equals &#x27;one&#x27; and arg2 now equals &#x27;two&#x27;</span></span><br><span class="line">        <span class="title function_">callback</span>(<span class="literal">null</span>, <span class="string">&#x27;three&#x27;</span>);</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="keyword">function</span>(<span class="params">arg1, callback</span>) &#123;</span><br><span class="line">    	  <span class="variable language_">console</span>.<span class="title function_">log</span>(arg1);</span><br><span class="line">        <span class="comment">// arg1 now equals &#x27;three&#x27;</span></span><br><span class="line">        <span class="title function_">callback</span>(<span class="literal">null</span>, <span class="string">&#x27;done&#x27;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">], <span class="keyword">function</span> (<span class="params">err, result</span>) &#123;</span><br><span class="line">    <span class="comment">// result now equals &#x27;done&#x27;</span></span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(result);</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 期望输出:</span></span><br><span class="line"><span class="comment">// one</span></span><br><span class="line"><span class="comment">// two</span></span><br><span class="line"><span class="comment">// three</span></span><br><span class="line"><span class="comment">// done</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="编码"><a href="#编码" class="headerlink" title="编码"></a>编码</h4><p>代码组织了好一会儿，又调试了好一会后(中间遇到了一个关于arguments的坑，后面会讲)，终于成型了。输出是按照预期的，和async源码运行的结果相同，分析也都写在注释中:</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> <span class="keyword">async</span> = &#123;&#125;;</span><br><span class="line"><span class="keyword">async</span>.<span class="property">waterfall</span> = <span class="keyword">function</span> (<span class="params">tasks, cb</span>)&#123;</span><br><span class="line">    <span class="comment">// 指向下一个将要执行的函数</span></span><br><span class="line">    <span class="keyword">var</span> _index = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 调用用户指定的函数</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">function</span> <span class="title function_">_run</span>(<span class="params">index, args, cb</span>)&#123;</span><br><span class="line">        <span class="keyword">var</span> task = tasks[index];</span><br><span class="line">        args.<span class="title function_">push</span>(cb);</span><br><span class="line">        task.<span class="title function_">apply</span>(<span class="literal">null</span>, args);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 因为涉及到控制流的转移，从框架转移到用户，再从用户转移到框架。</span></span><br><span class="line"><span class="comment">     * 需要定义一个传递控制流的使者，就是这个_cb函数</span></span><br><span class="line"><span class="comment">     * 1.框架转移到用户：调用用户函数的同时，把_cb作为参数</span></span><br><span class="line"><span class="comment">     * 2.用户转移到框架：用户调用这个_cb，表明已执行完该函数，把控制交给框架。抑或结束，抑或执行下一个函数</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">function</span> <span class="title function_">_cb</span>(<span class="params"></span>)&#123;</span><br><span class="line">        <span class="comment">// 如果错误了，直接回调最外层的cb</span></span><br><span class="line">        <span class="comment">// 如果是最后一个，也直接调用最外层的cb</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="variable language_">arguments</span>[<span class="number">0</span>] || _index === tasks.<span class="property">length</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> cb &amp;&amp; cb.<span class="title function_">apply</span>(<span class="literal">null</span>, <span class="variable language_">arguments</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * 取出回调参数，作为下一个函数的输入</span></span><br><span class="line"><span class="comment">         * 因为回调的第一个参数是错误码，所以要去掉第一个</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="comment">// var rest = arguments.slice(1); //arguments并没有slice方法，因此这样会报错</span></span><br><span class="line">        <span class="keyword">var</span> rest = [].<span class="property">slice</span>.<span class="title function_">call</span>(<span class="variable language_">arguments</span>, <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">        <span class="title function_">_run</span>(_index++, rest, _cb);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果用户没有指定要串行执行的函数，则直接调用回调</span></span><br><span class="line">    <span class="keyword">if</span> (tasks.<span class="property">length</span> === <span class="number">0</span>) <span class="keyword">return</span> cb &amp;&amp; <span class="title function_">cb</span>();</span><br><span class="line">    <span class="title function_">_run</span>(_index++, [], _cb);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h4 id="坑"><a href="#坑" class="headerlink" title="坑"></a>坑</h4><p>踩的这个坑是关于<code>arguments</code>的(在ES6语法中其实不推荐使用arguments的方式，因为语法已经支持了<a target="_blank" rel="noopener" href="http://ariya.ofilabs.com/2013/03/es6-and-rest-parameter.html">rest param</a>）。我一直以为一个函数的arguments属性是一个Array，因为经常可以看到通过arguments[0]的方式去获取参数，也从来没有质疑过。先来看看下面这一个例子:</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">a</span> ()&#123;</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="keyword">typeof</span> <span class="variable language_">arguments</span>);</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">arguments</span>);</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">arguments</span>[<span class="number">0</span>]);</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">arguments</span>[<span class="string">&#x27;0&#x27;</span>]);</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="variable language_">arguments</span>.<span class="property">length</span>);</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>([].<span class="property">slice</span>.<span class="title function_">call</span>(<span class="variable language_">arguments</span>, <span class="number">1</span>));</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="title function_">a</span>(<span class="string">&#x27;one&#x27;</span>, <span class="string">&#x27;two&#x27;</span>, <span class="string">&#x27;three&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 输出(chrome)：</span></span><br><span class="line"><span class="comment"> * object</span></span><br><span class="line"><span class="comment"> * [&quot;one&quot;, &quot;two&quot;, &quot;three&quot;]</span></span><br><span class="line"><span class="comment"> * one</span></span><br><span class="line"><span class="comment"> * one</span></span><br><span class="line"><span class="comment"> * 3</span></span><br><span class="line"><span class="comment"> * [&quot;two&quot;, &quot;three&quot;]</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * 输出(node.js)</span></span><br><span class="line"><span class="comment"> * object</span></span><br><span class="line"><span class="comment"> * &#123; &#x27;0&#x27;: &#x27;one&#x27;, &#x27;1&#x27;: &#x27;two&#x27;, &#x27;2&#x27;: &#x27;three&#x27; &#125;</span></span><br><span class="line"><span class="comment"> * one</span></span><br><span class="line"><span class="comment"> * one</span></span><br><span class="line"><span class="comment"> * 3</span></span><br><span class="line"><span class="comment"> * [ &#x27;two&#x27;, &#x27;three&#x27; ]</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看出，arguments对象并不是一个array对象。在chrome中虽然看上去打印出来的是Array，但它是可以展开的，里面还有好多参数。而且下标取值的时候不光可以用数字，也可以用字符串来取值。这也是为什么我写的代码注释中<code>arguments.slice(1);</code>的方式会执行错误(slice是Array才有的方法)。但是<code>[].slice.call(arguments, 1);</code>却能执行，说明arguments还是有一点slice的特性的，<strong>有点不太懂</strong>。感觉它同时继承了dict和array两种对象的部分特性。</p>
+<h3 id="原来的轮子"><a href="#原来的轮子" class="headerlink" title="原来的轮子"></a>原来的轮子</h3><p>贴上原来的代码实现:</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span>.<span class="property">waterfall</span> = <span class="keyword">function</span> (<span class="params">tasks, callback</span>) &#123;</span><br><span class="line">    <span class="comment">// 这种方式也是很聪明的一种方式，可以代替 callback &amp;&amp; callback()的方式</span></span><br><span class="line">    <span class="comment">// noop 是一个空函数，什么也不执行</span></span><br><span class="line">    callback = <span class="title function_">_once</span>(callback || noop);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!<span class="title function_">_isArray</span>(tasks)) &#123;</span><br><span class="line">        <span class="keyword">var</span> err = <span class="keyword">new</span> <span class="title class_">Error</span>(<span class="string">&#x27;First argument to waterfall must be an array of functions&#x27;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="title function_">callback</span>(err);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (!tasks.<span class="property">length</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="title function_">callback</span>();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">function</span> <span class="title function_">wrapIterator</span>(<span class="params">iterator</span>) &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="title function_">_restParam</span>(<span class="keyword">function</span> (<span class="params">err, args</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (err) &#123;</span><br><span class="line">                callback.<span class="title function_">apply</span>(<span class="literal">null</span>, [err].<span class="title function_">concat</span>(args));</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">var</span> next = iterator.<span class="title function_">next</span>();</span><br><span class="line">                <span class="keyword">if</span> (next) &#123;</span><br><span class="line">                    args.<span class="title function_">push</span>(<span class="title function_">wrapIterator</span>(next));</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">else</span> &#123;</span><br><span class="line">                    args.<span class="title function_">push</span>(callback);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="title function_">ensureAsync</span>(iterator).<span class="title function_">apply</span>(<span class="literal">null</span>, args);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="title function_">wrapIterator</span>(<span class="keyword">async</span>.<span class="title function_">iterator</span>(tasks))();</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>抛开一些异常处理的情况，就总体逻辑流程上还是有些区别的，下面就逐个来分析一下。</p>
+<h4 id="迭代器"><a href="#迭代器" class="headerlink" title="迭代器"></a>迭代器</h4><p>我是自己通过<code>_index</code>的局部变量来记录当前执行的函数的(得益于闭包的特性，这个局部变量可以一直保留着)。源码实现了一种迭代器的方式去管理传入的函数数组，非常优雅，支持next特性，观摩一下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span>.<span class="property">iterator</span> = <span class="keyword">function</span> (<span class="params">tasks</span>) &#123;</span><br><span class="line">    <span class="keyword">function</span> <span class="title function_">makeCallback</span>(<span class="params">index</span>) &#123;</span><br><span class="line">        <span class="keyword">function</span> <span class="title function_">fn</span>(<span class="params"></span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (tasks.<span class="property">length</span>) &#123;</span><br><span class="line">                tasks[index].<span class="title function_">apply</span>(<span class="literal">null</span>, <span class="variable language_">arguments</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> fn.<span class="title function_">next</span>();</span><br><span class="line">        &#125;</span><br><span class="line">        fn.<span class="property">next</span> = <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> (index &lt; tasks.<span class="property">length</span> - <span class="number">1</span>) ? <span class="title function_">makeCallback</span>(index + <span class="number">1</span>): <span class="literal">null</span>;</span><br><span class="line">        &#125;;</span><br><span class="line">        <span class="keyword">return</span> fn;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="title function_">makeCallback</span>(<span class="number">0</span>);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>通过<code>async.iterator</code>包装以后返回的是一个迭代器对象，他同时又是一个函数可以直接执行，包装了用户传入的tasks中的第一个函数。</p>
+<h4 id="调度器"><a href="#调度器" class="headerlink" title="调度器"></a>调度器</h4><p>有了迭代器，还需要一个调度器才能按照预期的流程串行执行需要的函数，同时处理参数传递的过程(我自己写的代码，调度的工作是由_cb一起做的)。</p>
+<p>这个调度器实现的非常棒，由于它返回的也是一个函数，因此和迭代器是属于同一个维度的(如果是调用者和被调用者的关系则不属于同一维度，他们的调用层次关系是同一层的)。<code>_restParam</code>函数可以暂时不用管它，因为从它的实现中可以看到，它本身和它参数中的函数是同一个维度的，它只是负责转换了一下参数的结构。完全可以理解为<code>wrapIterator</code>返回的就是被_restParam包着的那个函数，<code>_restParam</code>只是一个参数结构的转换器，处理了参数结构不一致的问题。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">_restParam</span>(<span class="params">func, startIndex</span>) &#123;</span><br><span class="line">    startIndex = startIndex == <span class="literal">null</span> ? func.<span class="property">length</span> - <span class="number">1</span> : +startIndex;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">        <span class="keyword">var</span> length = <span class="title class_">Math</span>.<span class="title function_">max</span>(<span class="variable language_">arguments</span>.<span class="property">length</span> - startIndex, <span class="number">0</span>);</span><br><span class="line">        <span class="keyword">var</span> rest = <span class="title class_">Array</span>(length);</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">var</span> index = <span class="number">0</span>; index &lt; length; index++) &#123;</span><br><span class="line">            rest[index] = <span class="variable language_">arguments</span>[index + startIndex];</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">switch</span> (startIndex) &#123;</span><br><span class="line">            <span class="keyword">case</span> <span class="number">0</span>: <span class="keyword">return</span> func.<span class="title function_">call</span>(<span class="variable language_">this</span>, rest);</span><br><span class="line">            <span class="keyword">case</span> <span class="number">1</span>: <span class="keyword">return</span> func.<span class="title function_">call</span>(<span class="variable language_">this</span>, <span class="variable language_">arguments</span>[<span class="number">0</span>], rest);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// Currently unused but handle cases outside of the switch statement:</span></span><br><span class="line">        <span class="comment">// var args = Array(startIndex + 1);</span></span><br><span class="line">        <span class="comment">// for (index = 0; index &lt; startIndex; index++) &#123;</span></span><br><span class="line">        <span class="comment">//     args[index] = arguments[index];</span></span><br><span class="line">        <span class="comment">// &#125;</span></span><br><span class="line">        <span class="comment">// args[startIndex] = rest;</span></span><br><span class="line">        <span class="comment">// return func.apply(this, args);</span></span><br><span class="line">    &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>回到调度器的上下文，在参数传递的过程中，args是上一个函数的返回结果组成的数组，再把下一个迭代器包装一下作为该数组的最后一个元素。这样在调用当前迭代器对应的函数的时候，用户态上下文中的callback就是下一个用户态函数对应的迭代器了。<strong>整个控制流程完全处在用户层</strong>，框架层所做的事仅仅是参数结构的转换(毕竟apply函数需要的参数结构是数组，而函数调用的时候则是展开的形式)。</p>
+<h4 id="奇淫技巧"><a href="#奇淫技巧" class="headerlink" title="奇淫技巧"></a>奇淫技巧</h4><p>在阅读代码的过程中看到了不少巧妙的用法</p>
+<h5 id="导出"><a href="#导出" class="headerlink" title="导出"></a>导出</h5><p>在async源码最后有这样一段代码:</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Node.js</span></span><br><span class="line"><span class="keyword">if</span> (<span class="keyword">typeof</span> <span class="variable language_">module</span> === <span class="string">&#x27;object&#x27;</span> &amp;&amp; <span class="variable language_">module</span>.<span class="property">exports</span>) &#123;</span><br><span class="line">   <span class="variable language_">module</span>.<span class="property">exports</span> = <span class="keyword">async</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// AMD / RequireJS</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">if</span> (<span class="keyword">typeof</span> define === <span class="string">&#x27;function&#x27;</span> &amp;&amp; define.<span class="property">amd</span>) &#123;</span><br><span class="line">   <span class="title function_">define</span>([], <span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">       <span class="keyword">return</span> <span class="keyword">async</span>;</span><br><span class="line">   &#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// included directly via &lt;script&gt; tag</span></span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">   root.<span class="property">async</span> = <span class="keyword">async</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>由于现在js使用的范围非常广，又有后端nodejs，又有前端js，需要适应不同的导入操作。这段代码就可以非常完美地做到对于不同导入方式的支持，包括：</p>
+<ul>
+<li>nodejs中的require语法</li>
+<li>RequireJs的导入方式</li>
+<li>html中script标签的导入方式</li>
+</ul>
+<h5 id="null"><a href="#null" class="headerlink" title="+null"></a>+null</h5><p>在<code>_restParam</code>代码中有如下一行:</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">startIndex = startIndex == <span class="literal">null</span> ? func.<span class="property">length</span> - <span class="number">1</span> : +startIndex;</span><br></pre></td></tr></table></figure>
+<p>刚开始我还不理解在一个变量前加一个<code>+</code>有什么用，后来自己尝试以后发现，<strong>对于一个null执行+操作符它会变成0</strong>。这个特性非常巧妙地使用了一行代码同时处理了 <strong>参数验证</strong> 和 <strong>转换</strong> 的工作。</p>
+<p>关于这个用法，我一个同学也是前端js大牛<a target="_blank" rel="noopener" href="http://jerryzou.com/">JerryZhou</a>在<a target="_blank" rel="noopener" href="http://segmentfault.com/q/1010000000510887/a-1020000000510993">segmentfault</a>上有一个回答，对于这个问题解释得不错，有兴趣的朋友可以去参考一下。</p>
+<h5 id="异步回调"><a href="#异步回调" class="headerlink" title="异步回调"></a>异步回调</h5><p>源码中的<code>ensureAsync</code>方法技巧性很强。当tasks中的函数一个个执行的过程中，我们当然是希望回调行为发生在当前的函数执行完毕后。毕竟在当前的上下文中执行callback的时间点并不一定在当前函数的最后(它之后还有语句需要执行，有可能还会做一些扫尾的工作，或者其它形式的逻辑)。由于callback其实就是tasks中的下一个函数，一旦执行callback，运行逻辑就跑到下一个任务了，而此时当前的任务还没有完成。这显然是不合理的。因此<code>ensureAsync</code>在这里就处理了这部分逻辑。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> <span class="title function_">ensureAsync</span>(<span class="params">fn</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="title function_">_restParam</span>(<span class="keyword">function</span> (<span class="params">args</span>) &#123;</span><br><span class="line">        <span class="keyword">var</span> callback = args.<span class="title function_">pop</span>();</span><br><span class="line">        args.<span class="title function_">push</span>(<span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">            <span class="keyword">var</span> innerArgs = <span class="variable language_">arguments</span>;</span><br><span class="line">            <span class="keyword">if</span> (sync) &#123;</span><br><span class="line">                <span class="keyword">async</span>.<span class="title function_">setImmediate</span>(<span class="keyword">function</span> (<span class="params"></span>) &#123;</span><br><span class="line">                    callback.<span class="title function_">apply</span>(<span class="literal">null</span>, innerArgs);</span><br><span class="line">                &#125;);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                callback.<span class="title function_">apply</span>(<span class="literal">null</span>, innerArgs);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">var</span> sync = <span class="literal">true</span>;</span><br><span class="line">        fn.<span class="title function_">apply</span>(<span class="variable language_">this</span>, args);</span><br><span class="line">        sync = <span class="literal">false</span>;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在async库中，<code>_restParam</code>还是很通用的，会在很多地方看到。代码里首先把原来的callback取出来，做一层封装，再push到参数列表中。设立一个sync的标签，只有当fn函数执行完毕后才会改变它的状态。这样一来，在原来的回调函数中会检查这个标签，如果是改变过的，则直接执行回调，也就是下一个task(此时可以确保当前task已经执行完毕)。如果sync标签未改变，说明当前task并未执行完毕，这个回调函数将在下一个事件循环的tick中被调用，下面是<code>setImmediate</code>方法。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span>.<span class="property">setImmediate</span> = _setImmediate ? _delay : <span class="keyword">async</span>.<span class="property">nextTick</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> _delay = _setImmediate ? <span class="keyword">function</span>(<span class="params">fn</span>) &#123;</span><br><span class="line">    <span class="comment">// not a direct alias for IE10 compatibility</span></span><br><span class="line">    <span class="title function_">_setImmediate</span>(fn);</span><br><span class="line">&#125; : <span class="keyword">function</span>(<span class="params">fn</span>) &#123;</span><br><span class="line">    <span class="built_in">setTimeout</span>(fn, <span class="number">0</span>);</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>边看代码边写的博客，写完发现真的又多懂了好些东西，因为有些知识点是我在写的时候才突然理解的。刚开始看源码的时候可能只理解了百分之30，就觉得值得分享，源码很不错。但当我写完的时候，我感觉已经掌握了七八成了。看来还是要多写东西啊，希望我写的东西也可以帮助广大朋友一起学习探讨。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2015/12/24/async%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E7%AC%94%E8%AE%B0/" title="async源码阅读笔记" target="_blank" rel="external">http://xidui.github.io/2015/12/24/async%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E7%AC%94%E8%AE%B0/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2016/01/13/celery%E5%88%9D%E6%8E%A2/" title="celery初探"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2015/12/09/%E8%B0%88%E8%B0%88%E9%A1%B9%E7%9B%AE%E9%87%8D%E6%9E%84%E4%B8%8E%E6%B5%8B%E8%AF%95/" title="谈谈项目的重构与测试"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2015/12/24/async%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E7%AC%94%E8%AE%B0/';
+        
+        this.page.identifier = 'async源码阅读笔记';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

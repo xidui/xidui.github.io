@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>谈谈项目的重构与测试 | Hexo</title>
+  <meta name="description" content="背景这几个月我开发了公司里的一个restful webservice，起初技术选型的时候是采用了flask框架。虽然flask是一个同步的框架，但是可以配合gevent或者其它方式运行在异步的容器中(测试链接)，效果看上去也还可以，因此就采用了这种方式。 后面阅读了tornado的源码，也去了解了各种协程框架以及运行的原理。总感觉flask的这种同步方式编程不够好，同时对于这种运行在容器里的模式目">
+<meta property="og:type" content="article">
+<meta property="og:title" content="谈谈项目的重构与测试">
+<meta property="og:url" content="http://xidui.github.io/2015/12/09/%E8%B0%88%E8%B0%88%E9%A1%B9%E7%9B%AE%E9%87%8D%E6%9E%84%E4%B8%8E%E6%B5%8B%E8%AF%95/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="背景这几个月我开发了公司里的一个restful webservice，起初技术选型的时候是采用了flask框架。虽然flask是一个同步的框架，但是可以配合gevent或者其它方式运行在异步的容器中(测试链接)，效果看上去也还可以，因此就采用了这种方式。 后面阅读了tornado的源码，也去了解了各种协程框架以及运行的原理。总感觉flask的这种同步方式编程不够好，同时对于这种运行在容器里的模式目">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2015-12-10T05:45:23.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:49:10.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="python">
+<meta property="article:tag" content="mongodb">
+<meta property="article:tag" content="tornado">
+<meta property="article:tag" content="flask">
+<meta property="article:tag" content="unittest">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2015/12/09/%E8%B0%88%E8%B0%88%E9%A1%B9%E7%9B%AE%E9%87%8D%E6%9E%84%E4%B8%8E%E6%B5%8B%E8%AF%95/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-谈谈项目重构与测试" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      谈谈项目的重构与测试
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2015/12/09/%E8%B0%88%E8%B0%88%E9%A1%B9%E7%9B%AE%E9%87%8D%E6%9E%84%E4%B8%8E%E6%B5%8B%E8%AF%95/" class="article-date">
+	  <time datetime="2015-12-10T05:45:23.000Z" itemprop="datePublished">2015-12-09</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/flask/" rel="tag">flask</a>, <a class="article-tag-link-link" href="/tags/mongodb/" rel="tag">mongodb</a>, <a class="article-tag-link-link" href="/tags/python/" rel="tag">python</a>, <a class="article-tag-link-link" href="/tags/tornado/" rel="tag">tornado</a>, <a class="article-tag-link-link" href="/tags/unittest/" rel="tag">unittest</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2015/12/09/%E8%B0%88%E8%B0%88%E9%A1%B9%E7%9B%AE%E9%87%8D%E6%9E%84%E4%B8%8E%E6%B5%8B%E8%AF%95/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 30k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 1:48(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>这几个月我开发了公司里的一个restful webservice，起初技术选型的时候是采用了<code>flask</code>框架。虽然flask是一个同步的框架，但是可以配合<code>gevent</code>或者其它方式运行在异步的容器中(<a target="_blank" rel="noopener" href="http://itindex.net/detail/26512-flask-tornado-gevent">测试链接</a>)，效果看上去也还可以，因此就采用了这种方式。</p>
+<p>后面阅读了<code>tornado</code>的源码，也去了解了各种协程框架以及运行的原理。总感觉flask的这种同步方式编程不够好，同时对于这种运行在容器里的模式目前还缺乏了解。但至少现在对于tornado的运行原理有了一定的了解，如果用tornado写的话，是很可控的，而且可以保证运行是高效的。因此就决定把原来基于flask的项目用tornado重构了。</p>
+<span id="more"></span>
+
+<h3 id="重构的过程"><a href="#重构的过程" class="headerlink" title="重构的过程"></a>重构的过程</h3><p>项目重构的过程中遇到了一些问题，也学习了一些东西，这里做一个简单的总结。</p>
+<h4 id="接入层"><a href="#接入层" class="headerlink" title="接入层"></a>接入层</h4><p>所有框架都要处理的一个接入层的事情就是：</p>
+<ul>
+<li>url-mapping</li>
+<li>项目初始化</li>
+<li>参数解析</li>
+</ul>
+<p>对于restful风格的接口以及项目的初始化，每个框架都有自己的方式，在它们的文档中都演示得特别清楚，所以关于这些我就不展开了。</p>
+<p>关于参数解析，这里并不是指简单地调用类似于<code>get_argument</code>这样的方法去获取数据。而是 <strong>如何从不可靠的client端传来的数据中过滤掉服务器不关注的数据，同时对服务器关注的数据作一些更强的校验</strong>，这就是协议层的事情了。</p>
+<p>使用谷歌的<code>ProtocolBuffer</code>是一个不错的方案，它有很不错的数据压缩率，也支持目前大多数主流的开发语言。但在一些小型项目中，我还是更偏向于使用<code>json</code>的方式，它显得更加灵活。但是对于json的话，如何作数据校验就是另外一个问题了。</p>
+<p>在重构前，我是通过python中的<code>装饰器</code>来实现的这个功能:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">SomeHandlerInFlask</span>(<span class="title class_ inherited__">Resource</span>):</span><br><span class="line"><span class="meta">    @util.deco(<span class="params">&#123;</span></span></span><br><span class="line"><span class="params"><span class="meta">        <span class="string">&#x27;key_x&#x27;</span>: (<span class="params"><span class="built_in">str</span>, <span class="string">&#x27;form&#x27;</span></span>),</span></span></span><br><span class="line"><span class="params"><span class="meta">        <span class="string">&#x27;key_y&#x27;</span>: (<span class="params"><span class="built_in">int</span>, <span class="string">&#x27;form&#x27;</span></span>),</span></span></span><br><span class="line"><span class="params"><span class="meta">        <span class="string">&#x27;key_z&#x27;</span>: (<span class="params"><span class="built_in">str</span>, <span class="string">&#x27;url&#x27;</span></span>)</span></span></span><br><span class="line"><span class="params"><span class="meta">    &#125;</span>)</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">post</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="comment"># logic code</span></span><br><span class="line">        <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
+<p>在装饰器中分别从不同的地方，form或者url中获取相应的参数。如果取不到，则直接报错，逻辑也不会进入到post函数中。</p>
+<p>这是我基于flask这个框架自己总结出来的一套尚且还能看能用的参数解析方式，如果在每个函数中通过框架提供的<code>get_argument</code>来逐一获取参数，则显得太丑，而且每个接口所需要的数据是什么也不够直观。不过这种方式我自己还不是特别满意，总感觉还是有点不太舒服，也说不清不舒服在哪里。那就干脆放弃它，使用别的方式吧。</p>
+<p>后来我了解到了<a target="_blank" rel="noopener" href="https://github.com/Julian/jsonschema">jsonschema</a>这个东西，看了一下感觉与ProtocolBuffer很相似，只不过它是采用json的格式定义，正合我意(对于它我也有点吐槽，在数据库层有提到)，每次数据进来就对数据和schema作一次validate操作，再进入业务逻辑层。</p>
+<h4 id="业务逻辑层"><a href="#业务逻辑层" class="headerlink" title="业务逻辑层"></a>业务逻辑层</h4><p>业务逻辑层的重构其实改动的代码并不多，把一些同步的操作改成异步的操作。就拿如何重构某个接口来说吧，重构前的代码可能是这样的:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">function_before_refactor</span>(<span class="params">some_params</span>):</span><br><span class="line">    result_1 = sync_call_1(some_params)</span><br><span class="line">    result_2 = sync_call_2(some_params)</span><br><span class="line">    <span class="comment"># some other processes</span></span><br><span class="line">    <span class="keyword">return</span> result</span><br></pre></td></tr></table></figure>
+<p>使用<code>gen.coroutine</code>重构后:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> tornado <span class="keyword">import</span> gen</span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">function_after_refactor</span>(<span class="params">some_params</span>):</span><br><span class="line">    <span class="comment"># if you don&#x27;t want to refactor</span></span><br><span class="line">    <span class="comment"># just call it as it always be</span></span><br><span class="line">    result_1 = sync_call_1(some_params)</span><br><span class="line">    result_2 = <span class="keyword">yield</span> async_call_2(some_params)</span><br><span class="line">    <span class="comment"># some other processes</span></span><br><span class="line">    <span class="keyword">raise</span> gen.Return(result)</span><br><span class="line">    <span class="comment"># python3及以上的版本不需要采用抛出异常的方式，直接return就可以了</span></span><br><span class="line">    <span class="comment"># return result</span></span><br></pre></td></tr></table></figure>
+<p>考虑到函数名根本不用改，重构的过程非常容易：</p>
+<ul>
+<li>函数用<code>gen.coroutine</code>包装成协程</li>
+<li>已经重构成异步方式的函数调用时添加<code>yield</code>关键字即可</li>
+<li>函数返回采用<code>raise gen.Return(result)</code>的方式（仅限于Python 2.7）</li>
+</ul>
+<p>因为我目前采用的是python 2.7，所以在处理返回的时候要用抛出异常的方式，在这种方式下有一个点需要注意到，那就是与平常异常的处理的混用，不然会导致逻辑流执行混乱：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> tornado <span class="keyword">import</span> gen</span><br><span class="line"></span><br><span class="line"><span class="meta">@gen.coroutine</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">function_after_refactor</span>(<span class="params">some_params</span>):</span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        <span class="comment"># some logic code</span></span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        <span class="keyword">if</span> <span class="built_in">isinstance</span>(e, gen.Return):</span><br><span class="line">            <span class="comment"># return the value raised by logic</span></span><br><span class="line">            <span class="keyword">raise</span> gen.Return(e.value)</span><br><span class="line">        <span class="comment"># more exception process</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="数据库层"><a href="#数据库层" class="headerlink" title="数据库层"></a>数据库层</h4><p>数据库采用的是<code>mongodb</code>，在flask框架中采用了<a target="_blank" rel="noopener" href="https://github.com/MongoEngine/mongoengine">mongoengine</a>作为数据库层的orm，对于这个python-mongodb的orm产品，我个人并不是很喜欢(可能是因为我习惯了<a target="_blank" rel="noopener" href="https://github.com/Automattic/mongoose">mongoose</a>的工作方式)，这里面嵌套json的定义居然不能体现在schema中，需要分开定义两个schema，然后再作引入的操作。比如（代码只是用作演示，与项目无关）：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Comment</span>(<span class="title class_ inherited__">EmbeddedDocument</span>):</span><br><span class="line">    content = StringField()</span><br><span class="line">    <span class="comment"># more comment details</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Page</span>(<span class="title class_ inherited__">Document</span>):</span><br><span class="line">    comments = ListField(EmbeddedDocumentField(Comment))</span><br><span class="line">    <span class="comment"># more page details</span></span><br></pre></td></tr></table></figure>
+<p>而在mongoose中就直观多了:</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> <span class="title class_">PageSchema</span> = <span class="keyword">new</span> <span class="title class_">Schema</span>(&#123;</span><br><span class="line">    title       :   &#123;type : <span class="title class_">String</span>, required : <span class="literal">true</span>&#125;,</span><br><span class="line">    time        :   &#123;type : <span class="title class_">Date</span>, <span class="keyword">default</span> : <span class="title class_">Date</span>.<span class="title function_">now</span>(), required : <span class="literal">true</span>&#125;,</span><br><span class="line">    comments    :   [&#123;</span><br><span class="line">        content   :   &#123;type : <span class="title class_">String</span>&#125;</span><br><span class="line">        <span class="comment">// more comment details</span></span><br><span class="line">    &#125;]</span><br><span class="line">    <span class="comment">// more page details</span></span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+<p>扯远了，在tornado的框架中，再使用mongoengine就不合适了，毕竟有着异步和同步的区别。那有什么比较好的python-mongodb的异步orm框架呢？搜了下，有一个叫做<a target="_blank" rel="noopener" href="https://github.com/heynemann/motorengine">motorengine</a>的东西，orm的使用方式和mongoengine基本一样，但看它的star数实在不敢用呀。而且它处理异步的方式是使用回调，现在都是使用协程的年代了，想想还是算了吧。</p>
+<p>最后找了个<a target="_blank" rel="noopener" href="https://github.com/mongodb/motor">motor</a>，感觉还不错，它有对目前大部分主流协程框架的支持，操作mongodb的方式与直接使用<a target="_blank" rel="noopener" href="https://github.com/mongodb/mongo-python-driver">pymongo</a>的方式差不多（毕竟都是基于pymongo的封装嘛），但是就是没有orm的验证层，那就自己再去另外搞一个简化的orm层吧。(<a target="_blank" rel="noopener" href="https://github.com/namlook/mongokit">mongokit</a>的orm方式看上去还不错，但貌似对协程框架的支持一般)。这里暂时先懒惰一下，还是采用了<a target="_blank" rel="noopener" href="https://github.com/Julian/jsonschema">jsonschema</a>。每次保存前都validate一下对象是否符合schema的定义。如果没有类mongoose的python-mongodb异步框架，有时间就自己写一个吧~</p>
+<p>这里顺带吐槽一下jsonschema，简直太琐碎了，一个很短的文档结构定义，它会描述成好几十行，我就不贴代码了，有兴趣的朋友可以戳这里<a target="_blank" rel="noopener" href="http://jsonschema.net/">http://jsonschema.net/</a>玩玩。而且python中的jsonschema库还不支持对于default关键字的操作，参见这个<a target="_blank" rel="noopener" href="https://github.com/Julian/jsonschema/issues/266">issue</a>。</p>
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><h4 id="自己摸索的一种接口测试方案"><a href="#自己摸索的一种接口测试方案" class="headerlink" title="自己摸索的一种接口测试方案"></a>自己摸索的一种接口测试方案</h4><p>python中的测试框架有很多，只要选择一个合适的能够很方便与项目集成就好。我个人还是很喜欢<code>unittest</code>这个框架，小而精。我的这套测试方案也是基于unittest框架的。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># TestUserPostAccessComponents.py</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">TestUserPostAccessComponents</span>(unittest.TestCase):</span><br><span class="line"><span class="meta">    @classmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">setUpClass</span>(<span class="params">cls</span>):</span><br><span class="line">        <span class="comment"># 定义在其它地方，具体细节就不展示了</span></span><br><span class="line">        <span class="comment"># 在setup中使用测试账号获取登陆态</span></span><br><span class="line">        <span class="comment"># 并把各种中间用得到的信息放在TestUserPostAccess类上</span></span><br><span class="line">        setup(cls)</span><br><span class="line"></span><br><span class="line"><span class="meta">    @classmethod</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">tearDownClass</span>(<span class="params">cls</span>):</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">setUp</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">tearDown</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">test_1_user_1_user_2_add_friend</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">test_2_user_1_user_2_del_friend</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">test_3_user_1_add_public_user_post</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">pass</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># more other components</span></span><br></pre></td></tr></table></figure>
+
+<p>最顶层的测试文件：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># run_test.py</span></span><br><span class="line"><span class="comment"># 各种import</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">user_basic_post_access_test</span>():</span><br><span class="line">    tests = [<span class="string">&#x27;test_3_user_1_add_public_user_post&#x27;</span>,</span><br><span class="line">             <span class="string">&#x27;test_5_user_2_as_a_stranger_can_access_public_user_post&#x27;</span>,</span><br><span class="line">             <span class="string">&#x27;test_4_user_1_del_public_user_post&#x27;</span>,</span><br><span class="line">             <span class="string">&#x27;test_6_user_1_add_private_user_post&#x27;</span>,</span><br><span class="line">             <span class="string">&#x27;test_8_user_2_as_a_stranger_can_not_access_private_user_post&#x27;</span>,</span><br><span class="line">             <span class="string">&#x27;test_9_user_1_self_can_access_private_user_post&#x27;</span>,</span><br><span class="line">             <span class="string">&#x27;test_7_user_1_del_private_user_post&#x27;</span>]</span><br><span class="line">    <span class="keyword">return</span> unittest.TestSuite(<span class="built_in">map</span>(TestUserPostAccessComponents, tests))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">other_process_test</span>():</span><br><span class="line">    tests = [</span><br><span class="line">        <span class="comment"># compose a process by components by yourself</span></span><br><span class="line">    ]</span><br><span class="line">    <span class="keyword">return</span> unittest.TestSuite(<span class="built_in">map</span>(OtherTestCaseComponents, tests))</span><br><span class="line"></span><br><span class="line">runner = unittest.TextTestRunner(verbosity=<span class="number">2</span>)</span><br><span class="line">runner.run(user_basic_post_access_test())</span><br><span class="line">runner.run(other_process_test())</span><br></pre></td></tr></table></figure>
+
+<p>这套测试是基于 <strong>BDD</strong> (行为驱动)的测试方式，针对每一个逻辑模块，定义一个components类，把所有子操作都定义成单独的测试单元。这里面的测试单元可以是完全无序的，把逻辑有序化组织成测试用例的过程会在最外面通过<code>TestSuit</code>的方式组织起来。这里可能会有一些异议，因为有些人在使用这个测试类的时候是把它作为一个测试用例来组织的，当然这些都是不同的使用方式。</p>
+<p>这套测试方案中的每个component都是api级别的测试，并不是函数级别的测试（集成测试与单元测试），每个TestSuit都是完整的一个业务流程。这样的好处在于 <strong>测试和项目完全解耦</strong>。测试代码不用关心项目的代码是同步还是异步的。就算项目重构了，测试完全无感知，只要api没变，就可以继续工作。</p>
+<p>当然以上都是理想的状态，因为在刚开始写这些测试的时候我还没有总结到这些点，导致了一些耦合性的存在。比如说测试代码中import了项目中的某个函数去获取一些数据，用于检查某个component的更新操作是否成功。在重构的过程中，该函数被重构成了协程。这样一来，在测试代码中就不能采用原来一样的方式去调用了，也就是说测试代码受到了框架同步与异步的影响，下一节我们就来谈谈同步与异步的测试，以及对于这种问题的解决方案。</p>
+<h4 id="异步测试-同步测试"><a href="#异步测试-同步测试" class="headerlink" title="异步测试&amp;同步测试"></a>异步测试&amp;同步测试</h4><p>在tornado中，也提供了一套测试的功能，具体在<code>tornado.testing</code>这个模块，看它源码其实可以发现它也是基于<code>unittest</code>的一层封装。<br><strong>我心里一直有一个问题</strong>：unittest的执行流程是同步的，既然这样，它是怎么去测一个由<code>gen.coroutine</code>包装的协程的呢，毕竟后者是异步的。<br>直到看了源码，恍然大悟，原来是<code>io_loop.run_sync</code>这个函数的功劳，具体实现在<code>gen_test</code>这个装饰器中，摘一部分源码（对于tornado源码不熟的同学可以先去看看tornado中的ioloop模块的实现，看完会对这个部分有更深刻的理解）：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">def</span> <span class="title function_">gen_test</span>(<span class="params">func=<span class="literal">None</span>, timeout=<span class="literal">None</span></span>):</span><br><span class="line">    <span class="keyword">if</span> timeout <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">        timeout = get_async_test_timeout()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">wrap</span>(<span class="params">f</span>):</span><br><span class="line">        <span class="comment"># Stack up several decorators to allow us to access the generator</span></span><br><span class="line">        <span class="comment"># object itself.  In the innermost wrapper, we capture the generator</span></span><br><span class="line">        <span class="comment"># and save it in an attribute of self.  Next, we run the wrapped</span></span><br><span class="line">        <span class="comment"># function through @gen.coroutine.  Finally, the coroutine is</span></span><br><span class="line">        <span class="comment"># wrapped again to make it synchronous with run_sync.</span></span><br><span class="line">        <span class="comment">#</span></span><br><span class="line">        <span class="comment"># This is a good case study arguing for either some sort of</span></span><br><span class="line">        <span class="comment"># extensibility in the gen decorators or cancellation support.</span></span><br><span class="line"><span class="meta">        @functools.wraps(<span class="params">f</span>)</span></span><br><span class="line">        <span class="keyword">def</span> <span class="title function_">pre_coroutine</span>(<span class="params">self, *args, **kwargs</span>):</span><br><span class="line">            result = f(self, *args, **kwargs)</span><br><span class="line">            <span class="keyword">if</span> <span class="built_in">isinstance</span>(result, types.GeneratorType):</span><br><span class="line">                self._test_generator = result</span><br><span class="line">            <span class="keyword">else</span>:</span><br><span class="line">                self._test_generator = <span class="literal">None</span></span><br><span class="line">            <span class="keyword">return</span> result</span><br><span class="line"></span><br><span class="line">        coro = gen.coroutine(pre_coroutine)</span><br><span class="line"></span><br><span class="line"><span class="meta">        @functools.wraps(<span class="params">coro</span>)</span></span><br><span class="line">        <span class="keyword">def</span> <span class="title function_">post_coroutine</span>(<span class="params">self, *args, **kwargs</span>):</span><br><span class="line">            <span class="keyword">try</span>:</span><br><span class="line">                <span class="keyword">return</span> self.io_loop.run_sync(</span><br><span class="line">                    functools.partial(coro, self, *args, **kwargs),</span><br><span class="line">                    timeout=timeout)</span><br><span class="line">            <span class="keyword">except</span> TimeoutError <span class="keyword">as</span> e:</span><br><span class="line">                <span class="comment"># run_sync raises an error with an unhelpful traceback.</span></span><br><span class="line">                <span class="comment"># If we throw it back into the generator the stack trace</span></span><br><span class="line">                <span class="comment"># will be replaced by the point where the test is stopped.</span></span><br><span class="line">                self._test_generator.throw(e)</span><br><span class="line">                <span class="comment"># In case the test contains an overly broad except clause,</span></span><br><span class="line">                <span class="comment"># we may get back here.  In this case re-raise the original</span></span><br><span class="line">                <span class="comment"># exception, which is better than nothing.</span></span><br><span class="line">                <span class="keyword">raise</span></span><br><span class="line">        <span class="keyword">return</span> post_coroutine</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> func <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>:</span><br><span class="line">        <span class="comment"># Used like:</span></span><br><span class="line">        <span class="comment">#     @gen_test</span></span><br><span class="line">        <span class="comment">#     def f(self):</span></span><br><span class="line">        <span class="comment">#         pass</span></span><br><span class="line">        <span class="keyword">return</span> wrap(func)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="comment"># Used like @gen_test(timeout=10)</span></span><br><span class="line">        <span class="keyword">return</span> wrap</span><br></pre></td></tr></table></figure>
+<p>在源码中，先把某个测试单元封装成一个协程，然后获取当前线程的ioloop对象，把协程抛给他去执行，直到执行完毕。这样就完美地实现了异步到同步的过渡，满足unittest测试框架的同步需求。<br>在具体的使用中只需要继承tornado提供的<code>AsyncTestCase</code>类就行了，注意这里不是<code>unittest.TestCase</code>。看了源码也可以发现，前者就是继承自后者的。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># This test uses coroutine style.</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">MyTestCase</span>(<span class="title class_ inherited__">AsyncTestCase</span>):</span><br><span class="line"><span class="meta">    @tornado.testing.gen_test</span></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">test_http_fetch</span>(<span class="params">self</span>):</span><br><span class="line">        client = AsyncHTTPClient(self.io_loop)</span><br><span class="line">        response = <span class="keyword">yield</span> client.fetch(<span class="string">&quot;http://www.tornadoweb.org&quot;</span>)</span><br><span class="line">        <span class="comment"># Test contents of response</span></span><br><span class="line">        self.assertIn(<span class="string">&quot;FriendFeed&quot;</span>, response.body)</span><br></pre></td></tr></table></figure>
+
+<p>回到上一节的问题，有了这种方式，就可以很容易地解决同步异步的问题了。如果测试用例中某一个函数已经被项目重构成了协程，只需要做以下三步：</p>
+<ul>
+<li>把测试components的类改成继承自<code>AsyncTestCase</code></li>
+<li>该测试单元使用<code>gen_test</code>装饰（其它测试单元可以不用加，只需要改涉及到协程的测试单元就行）</li>
+<li>调用协程的地方添加<code>yield</code>关键字</li>
+</ul>
+<h4 id="测试代码如何适应项目的重构"><a href="#测试代码如何适应项目的重构" class="headerlink" title="测试代码如何适应项目的重构"></a>测试代码如何适应项目的重构</h4><ul>
+<li>如果是api测试<br>测试中尽量不要调用任何项目中的代码，它只专注于测试接口是否按照预期在工作，具体里面是怎么样的不需要关心。这样的话整套测试是完全独立于项目而存在的，即使项目重构，也可以不用作任何修改，无缝对接。</li>
+<li>如果是单元测试<br>参考上一节的方案。</li>
+</ul>
+<p><strong>一些关于测试规范的总结</strong>：</p>
+<ul>
+<li>测试代码执行前后应尽量保证整个系统状态的一致<br>虽然说测试环境和线上环境往往用的是两套系统，数据互不影响的。但我个人编写测试的时候还是有一个习惯，<em>一旦有一条数据记录的插入，必然会对应一条相应数据的删除</em>，可以从我前面的那个例子中看到。这个有两点好处，<strong>一来</strong> 可以使测试覆盖率更广，毕竟api设计的时候crud中的c和d总是成对出现的，这样可以保证一个测试用例就可以覆盖两个操作。<strong>二来</strong> 可以保证不同测试用例之间环境的独立，不会因为前一个用例的某个脏数据导致之后某些测试用例的失败。</li>
+<li>每发现一个bug，修复的同时，针对这个bug重现的流程写一个测试用例<br>这样可以保证不管代码怎么改，在回归测试的时候这个bug的隐患总是可以被覆盖到，这么做可以确保相同的错误不会犯第二次。</li>
+<li>先写测试VS先写业务<br>测试驱动开发有一点强调的是先写测试，再写业务。不过对于这点，我倒并不是那么赞同。我觉得主要是看你怎么写方便就怎么写，毕竟有些时候业务还没写，测试用例往往很难写得完整。比如测试用例中依赖到的一些业务流程，可能会因为接口的重构与封装而变更，这个时候就没有谁先谁后了，可能要两边都时不时改动。测试代码和业务代码互相完善，最后调通。不过有一点是很确定的，<strong>尽量保证所有想到的业务都有对应的测试用例</strong>！</li>
+</ul>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>重构是一个不断优化和学习的过程，在这个过程中我踩了一些坑，也爬出了一些坑，希望可以把我的这些总结分享给大家。欢迎大家跟我交流。对于文中的一些方案，也欢迎大家拍砖，欢迎有更多的做法可以一起探讨学习。另外，对于这个项目的重构，文章里面可能还少了一些更加直观的性能测试，后面我会加上去，孝敬各位爷~</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2015/12/09/%E8%B0%88%E8%B0%88%E9%A1%B9%E7%9B%AE%E9%87%8D%E6%9E%84%E4%B8%8E%E6%B5%8B%E8%AF%95/" title="谈谈项目的重构与测试" target="_blank" rel="external">http://xidui.github.io/2015/12/09/%E8%B0%88%E8%B0%88%E9%A1%B9%E7%9B%AE%E9%87%8D%E6%9E%84%E4%B8%8E%E6%B5%8B%E8%AF%95/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2015/12/24/async%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB%E7%AC%94%E8%AE%B0/" title="async源码阅读笔记"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2015/11/28/%E5%A6%82%E4%BD%95%E8%AE%A9%E8%BF%9B%E7%A8%8B%E5%90%8E%E5%8F%B0%E8%BF%90%E8%A1%8C%E2%80%94%E2%80%94%E5%A4%9A%E7%A7%8D%E6%96%B9%E6%A1%88%E6%95%B4%E7%90%86/" title="如何让进程后台运行——多种方案整理"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2015/12/09/%E8%B0%88%E8%B0%88%E9%A1%B9%E7%9B%AE%E9%87%8D%E6%9E%84%E4%B8%8E%E6%B5%8B%E8%AF%95/';
+        
+        this.page.identifier = '谈谈项目重构与测试';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

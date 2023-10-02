@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>nodejs 源码浅析(二)——核心模块编译加载原理 | Hexo</title>
+  <meta name="description" content="模块加载原理nodejs中，一共有四种类型的模块，C++核心模块（内建模块），js核心模块，C++用户模块，js用户模块。这部分来分别探讨下这些模块的编译加载流程。问题：1.require、exports、module这些对象用户没有声明过，但用户还是可以直接用require(),exports，这是为什么？2.引入别的模块的流程如何？  1.js核心模块加载原理每个js模块都是一个文件，一个文件">
+<meta property="og:type" content="article">
+<meta property="og:title" content="nodejs 源码浅析(二)——核心模块编译加载原理">
+<meta property="og:url" content="http://xidui.github.io/2015/03/12/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%BA%8C-%E2%80%94%E2%80%94%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97%E7%BC%96%E8%AF%91%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="模块加载原理nodejs中，一共有四种类型的模块，C++核心模块（内建模块），js核心模块，C++用户模块，js用户模块。这部分来分别探讨下这些模块的编译加载流程。问题：1.require、exports、module这些对象用户没有声明过，但用户还是可以直接用require(),exports，这是为什么？2.引入别的模块的流程如何？  1.js核心模块加载原理每个js模块都是一个文件，一个文件">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://xidui.github.io/images/E5AF647D-4F49-4E37-A394-0753784ED001.png">
+<meta property="og:image" content="http://xidui.github.io/images/7B2D4466-484B-4962-AEE6-9E0B11A8EB48.png">
+<meta property="og:image" content="http://xidui.github.io/images/18E133C0-97F7-4825-9A98-2BB968B41499.png">
+<meta property="article:published_time" content="2015-03-13T01:25:24.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:48:02.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="nodejs">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xidui.github.io/images/E5AF647D-4F49-4E37-A394-0753784ED001.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2015/03/12/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%BA%8C-%E2%80%94%E2%80%94%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97%E7%BC%96%E8%AF%91%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-nodejs-源码浅析-二-——核心模块编译加载原理" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      nodejs 源码浅析(二)——核心模块编译加载原理
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2015/03/12/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%BA%8C-%E2%80%94%E2%80%94%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97%E7%BC%96%E8%AF%91%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/" class="article-date">
+	  <time datetime="2015-03-13T01:25:24.000Z" itemprop="datePublished">2015-03-12</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/nodejs/" rel="tag">nodejs</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2015/03/12/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%BA%8C-%E2%80%94%E2%80%94%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97%E7%BC%96%E8%AF%91%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 16k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 57 mins.(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h2 id="模块加载原理"><a href="#模块加载原理" class="headerlink" title="模块加载原理"></a>模块加载原理</h2><p>nodejs中，一共有四种类型的模块，C++核心模块（内建模块），js核心模块，C++用户模块，js用户模块。这部分来分别探讨下这些模块的编译加载流程。<br>问题：<br>1.require、exports、module这些对象用户没有声明过，但用户还是可以直接用require(),exports，这是为什么？<br>2.引入别的模块的流程如何？</p>
+<hr>
+<h3 id="1-js核心模块加载原理"><a href="#1-js核心模块加载原理" class="headerlink" title="1.js核心模块加载原理"></a>1.js核心模块加载原理</h3><p>每个js模块都是一个文件，一个文件一个模块，在js代码中就是一个Module对象。至于那些整个包构成的模块，也是有一个对外的文件，如果没有指定默认是index.js作为出口文件，该文件内部又会使用require去包含其它的文件。</p>
+<span id="more"></span>
+
+<p>核心模块加载的大致流程如下：</p>
+<img src="/images/E5AF647D-4F49-4E37-A394-0753784ED001.png" class="">
+<p>其实加载js核心模块和用户模块都会走到_load()接口，分水岭在于js的核心模块在node二进制文件编译的时候使用js2c.py编译进了.&#x2F;out&#x2F;Release&#x2F;obj&#x2F;gen&#x2F;node_javascript.h这个文件中，在_load函数中它先去判断要加载的模块在NativeModule中存不存在，如果存在，直接调用，如果不存在，那就是js用户模块，走另一个逻辑分支。现在我们探讨的是js核心模块，直接逻辑就进入了NativeModule。</p>
+<p>在NativeModule的require中有一个细节，他并不是每次都重新加载，第一次加载相应的模块以后，便存在缓存中，下次直接从缓存中取，以加快效率：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> cached = <span class="title class_">NativeModule</span>.<span class="title function_">getCached</span>(id);</span><br><span class="line"><span class="keyword">if</span> (cached) &#123;</span><br><span class="line">    <span class="keyword">return</span> cached.<span class="property">exports</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>cache()接口的作用就是把第一次加载的放进缓存，它是一个对象函数不是类的静态函数：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="title class_">NativeModule</span>.<span class="property"><span class="keyword">prototype</span></span>.<span class="property">cache</span> = <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="title class_">NativeModule</span>.<span class="property">_cache</span>[<span class="variable language_">this</span>.<span class="property">id</span>] = <span class="variable language_">this</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>compile函数虽然很短，但值得详细推敲一下：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="title class_">NativeModule</span>.<span class="property">wrap</span> = <span class="keyword">function</span>(<span class="params">script</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="title class_">NativeModule</span>.<span class="property">wrapper</span>[<span class="number">0</span>] + script + <span class="title class_">NativeModule</span>.<span class="property">wrapper</span>[<span class="number">1</span>];</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="title class_">NativeModule</span>.<span class="property">wrapper</span> = [</span><br><span class="line">    <span class="string">&#x27;(function (exports, require, module, __filename, __dirname) &#123; &#x27;</span>,</span><br><span class="line">    <span class="string">&#x27;\n&#125;);&#x27;</span></span><br><span class="line">];</span><br><span class="line"></span><br><span class="line"><span class="title class_">NativeModule</span>.<span class="property"><span class="keyword">prototype</span></span>.<span class="property">compile</span> = <span class="keyword">function</span>(<span class="params"></span>) &#123;</span><br><span class="line">    <span class="keyword">var</span> source = <span class="title class_">NativeModule</span>.<span class="title function_">getSource</span>(<span class="variable language_">this</span>.<span class="property">id</span>);</span><br><span class="line">    source = <span class="title class_">NativeModule</span>.<span class="title function_">wrap</span>(source);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> fn = <span class="title function_">runInThisContext</span>(source, &#123; <span class="attr">filename</span>: <span class="variable language_">this</span>.<span class="property">filename</span> &#125;);</span><br><span class="line">    <span class="title function_">fn</span>(<span class="variable language_">this</span>.<span class="property">exports</span>, <span class="title class_">NativeModule</span>.<span class="property">require</span>, <span class="variable language_">this</span>, <span class="variable language_">this</span>.<span class="property">filename</span>);</span><br><span class="line"></span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">loaded</span> = <span class="literal">true</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>得到要加载的模块的源码后，nodejs执行了一个wrap操作，这个wrap把所有代码外部包了一层function。而exports、require等就是这个函数的形参。这也就解释了为啥用户感觉require，exports用户没有声明就能用。执行完了runInThisContext后，相当于是把这个模块声明了。fn()则是传入参数，执行构造函数，生成对象，至此这个模块就已经加载完成可以使用了。</p>
+<p>值得注意的一点是，这里传入的require是NativeModule.require，后面我们会发现，加载js用户模块的时候传入的是Module.prototype.require。这是相当合理的，因为在引入关系上，js核心模块只有js用户模块才能引入，这个方向不能反，当然js用户模块也能引入js用户模块。所以如果后者传入NativeModule.require也是不合理的。</p>
+<p>现在对于runInThisContext()接口我们的了解仅限于js层面，那么它究竟是怎么被传入v8解析并执行的呢：</p>
+<img src="/images/7B2D4466-484B-4962-AEE6-9E0B11A8EB48.png" class="">
+
+<p>从js到C++，我们可以看到，js层调用了process.binding，获取了contextify模块（C++核心模块）的ContextifyScript对象，执行这个对象的RunInThisContext方法。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> <span class="title class_">ContextifyScript</span> = process.<span class="title function_">binding</span>(<span class="string">&#x27;contextify&#x27;</span>).<span class="property">ContextifyScript</span>;</span><br><span class="line"><span class="keyword">function</span> <span class="title function_">runInThisContext</span>(<span class="params">code, options</span>) &#123;</span><br><span class="line">    <span class="keyword">var</span> script = <span class="keyword">new</span> <span class="title class_">ContextifyScript</span>(code, options);</span><br><span class="line">    <span class="keyword">return</span> script.<span class="title function_">runInThisContext</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在EvalMachine里，如其名就是执行js代码了，主要部分如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">ContextifyScript* wrapped_script = <span class="built_in">Unwrap</span>&lt;ContextifyScript&gt;(args.<span class="built_in">Holder</span>());</span><br><span class="line">Local&lt;UnboundScript&gt; unbound_script =</span><br><span class="line">    <span class="built_in">PersistentToLocal</span>(env-&gt;<span class="built_in">isolate</span>(), wrapped_script-&gt;script_);</span><br><span class="line">Local&lt;Script&gt; script = unbound_script-&gt;<span class="built_in">BindToCurrentContext</span>();</span><br><span class="line"></span><br><span class="line">Local&lt;Value&gt; result;</span><br><span class="line"><span class="keyword">if</span> (timeout != <span class="number">-1</span>) &#123;</span><br><span class="line">    <span class="function">Watchdog <span class="title">wd</span><span class="params">(env, timeout)</span></span>;</span><br><span class="line">    result = script-&gt;<span class="built_in">Run</span>();</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    result = script-&gt;<span class="built_in">Run</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>至于这些script是调用哪些接口生成的，比如PersistentToLocal、BindToCurrentContext具体做了哪些工作，则需要阅读v8的api文档或者v8的源码了，不在本文的范围之内，日后会再介绍。</p>
+<hr>
+<h3 id="2-c-核心模块加载原理"><a href="#2-c-核心模块加载原理" class="headerlink" title="2.c++核心模块加载原理"></a>2.c++核心模块加载原理</h3><p>上一节已经有提到了，C++核心模块的就是通过process.binding(‘xxx’)导出的。</p>
+<img src="/images/18E133C0-97F7-4825-9A98-2BB968B41499.png" class="">
+<p>而这个nm_context_register_fun()则是在src&#x2F;xxx.cc中通过NODE_MODULE_CONTEXT_AWARE_BUILTIN注册的，以node_buffer.cc为例：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NODE_MODULE_CONTEXT_AWARE_BUILTIN</span>(buffer, node::Buffer::Initialize)</span><br></pre></td></tr></table></figure>
+<p>node_module的结构如下（在node.h中）：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">node_module</span> &#123;</span><br><span class="line">    <span class="type">int</span> nm_version;</span><br><span class="line">    <span class="type">unsigned</span> <span class="type">int</span> nm_flags;</span><br><span class="line">    <span class="type">void</span>* nm_dso_handle;</span><br><span class="line">    <span class="type">const</span> <span class="type">char</span>* nm_filename;</span><br><span class="line">    node::addon_register_func nm_register_func;</span><br><span class="line">    node::addon_context_register_func nm_context_register_func;</span><br><span class="line">    <span class="type">const</span> <span class="type">char</span>* nm_modname;</span><br><span class="line">    <span class="type">void</span>* nm_priv;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">node_module</span>* nm_link;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>有如下疑问：nm_register_func和nm_context_register_func在功能上有什么区别，通过在项目中寻找这两个词，发现</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NODE_MODULE</span>(modname, regfunc)</span><br></pre></td></tr></table></figure>
+<p>这个宏用于注册nm_register_func，</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">NODE_MODULE_CONTEXT_AWARE_BUILTIN</span>(modname, regfunc)</span><br></pre></td></tr></table></figure>
+<p>这个宏用于注册nm_context_register_func，<br>src下的内建模块使用的都是后者来注册的，node项目中没有找到NODE_MODULE注册模块的地方。<br>在node.cc对nm_register_func以及nm_context_register_func的使用上也基本没差，如果一个没有就调用另外一个，仅仅在Binding接口中有区别：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">exports = Object::<span class="built_in">New</span>(env-&gt;<span class="built_in">isolate</span>());</span><br><span class="line"><span class="comment">// Internal bindings don&#x27;t have a &quot;module&quot; object, only exports.</span></span><br><span class="line"><span class="built_in">assert</span>(mod-&gt;nm_register_func == <span class="literal">NULL</span>);</span><br><span class="line"><span class="built_in">assert</span>(mod-&gt;nm_context_register_func != <span class="literal">NULL</span>);</span><br><span class="line">Local&lt;Value&gt; unused = <span class="built_in">Undefined</span>(env-&gt;<span class="built_in">isolate</span>());</span><br><span class="line">mod-&gt;<span class="built_in">nm_context_register_func</span>(exports, unused,</span><br><span class="line">    env-&gt;<span class="built_in">context</span>(), mod-&gt;nm_priv);</span><br><span class="line">cache-&gt;<span class="built_in">Set</span>(<span class="keyword">module</span>, exports);</span><br></pre></td></tr></table></figure>
+<p>只能猜测process.binding所引入的模块（C++核心模块）要使用nm_context_register_func，另外一个得为NULL。要是想扩展C++核心模块的开发者要注意这点了，不然无法正常引入，是个坑啊。</p>
+<p>node_module在组织上是通过链表的形式，有新的模块来了，就会把它放到链表的头部，nm_link就是指向下一个模块的指针。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> node_module* modpending;</span><br><span class="line"><span class="type">static</span> node_module* modlist_builtin;</span><br><span class="line"><span class="type">static</span> node_module* modlist_linked;</span><br><span class="line"><span class="type">static</span> node_module* modlist_addon;</span><br></pre></td></tr></table></figure>
+<p>这四个静态变量分别表示四个链表，内建模块在加载时会被放入modlist_builtin，C++用户模块会被放入modlist_addon，如果src下的文件不是内建模块，在启动时他会被放入modlist_linked。<br>更具体地：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> NODE_MODULE(modname, regfunc)                                 \</span></span><br><span class="line"><span class="meta">    NODE_MODULE_X(modname, regfunc, NULL, 0)</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NODE_MODULE_CONTEXT_AWARE(modname, regfunc)                   \</span></span><br><span class="line"><span class="meta">    NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, 0)</span></span><br></pre></td></tr></table></figure>
+<p>使用上面的宏注册的C++模块，会被放入modlist_linked；使用下面的宏注册的C++模块会被放入modlist_builtin。<br>至于modpending，笔者还不是很懂，它和modlist_addon是一对。加载C++用户模块的时候它会放入modpending，然后再是modlist_addon。但是它是在哪里放入modpending的，还不清楚，日后懂了会更新。</p>
+<h4 id="C-用户模块和js用户模块的加载过程会放在下篇文章中讲解。"><a href="#C-用户模块和js用户模块的加载过程会放在下篇文章中讲解。" class="headerlink" title="C++用户模块和js用户模块的加载过程会放在下篇文章中讲解。"></a>C++用户模块和js用户模块的加载过程会放在下篇文章中讲解。</h4>
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2015/03/12/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%BA%8C-%E2%80%94%E2%80%94%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97%E7%BC%96%E8%AF%91%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/" title="nodejs 源码浅析(二)——核心模块编译加载原理" target="_blank" rel="external">http://xidui.github.io/2015/03/12/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%BA%8C-%E2%80%94%E2%80%94%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97%E7%BC%96%E8%AF%91%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2015/03/19/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%B8%89-%E2%80%94%E2%80%94%E7%94%A8%E6%88%B7%E6%A8%A1%E5%9D%97%E7%BC%96%E8%AF%91%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/" title="nodejs 源码浅析(三)——用户模块编译加载原理"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2015/03/05/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%B8%80%E8%BF%9B%E7%A8%8B%E5%90%AF%E5%8A%A8%E8%BF%87%E7%A8%8B/" title="nodejs 源码浅析(一)——进程启动过程"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2015/03/12/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%BA%8C-%E2%80%94%E2%80%94%E6%A0%B8%E5%BF%83%E6%A8%A1%E5%9D%97%E7%BC%96%E8%AF%91%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/';
+        
+        this.page.identifier = 'nodejs-源码浅析-二-——核心模块编译加载原理';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

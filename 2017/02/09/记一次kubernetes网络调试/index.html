@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>记一次kubernetes网络调试 | Hexo</title>
+  <meta name="description" content="背景过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="记一次kubernetes网络调试">
+<meta property="og:url" content="http://xidui.github.io/2017/02/09/%E8%AE%B0%E4%B8%80%E6%AC%A1kubernetes%E7%BD%91%E7%BB%9C%E8%B0%83%E8%AF%95/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="背景过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://xidui.github.io/images/kubernetes-service.png">
+<meta property="og:image" content="http://xidui.github.io/images/networking.png">
+<meta property="article:published_time" content="2017-02-10T02:39:23.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:49:06.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="kubernetes">
+<meta property="article:tag" content="iptables">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xidui.github.io/images/kubernetes-service.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2017/02/09/%E8%AE%B0%E4%B8%80%E6%AC%A1kubernetes%E7%BD%91%E7%BB%9C%E8%B0%83%E8%AF%95/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-记一次kubernetes网络调试" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      记一次kubernetes网络调试
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2017/02/09/%E8%AE%B0%E4%B8%80%E6%AC%A1kubernetes%E7%BD%91%E7%BB%9C%E8%B0%83%E8%AF%95/" class="article-date">
+	  <time datetime="2017-02-10T02:39:23.000Z" itemprop="datePublished">2017-02-09</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/iptables/" rel="tag">iptables</a>, <a class="article-tag-link-link" href="/tags/kubernetes/" rel="tag">kubernetes</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2017/02/09/%E8%AE%B0%E4%B8%80%E6%AC%A1kubernetes%E7%BD%91%E7%BB%9C%E8%B0%83%E8%AF%95/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 11k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 41 mins.(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>过了年leetcode的用户量渐渐起来了，1台服务器已经有点吃力，当高峰的时候经常有些请求超时。而且为了防止服务器的单点问题，需要部署多个replica以保证高可用性。之前的架构已经是在kubernetes集群上了，因此扩容相对而言比较容易。整个webserver的架构如下图所示：</p>
+<span id="more"></span>
+<img src="/images/kubernetes-service.png" class="">
+
+<ul>
+<li>nginx作为反向代理监听互联网的请求</li>
+<li>对于leetcode.com的访问转发到kubernetes service</li>
+<li>通过label将service与pod绑定，并在service层作负载均衡</li>
+</ul>
+<p>两个pod分布在不同的机器上，其中pod2所在的机器是为了这次的扩容而部署的。关于如何在已有的集群中增加机器，可以参考我<a href="http://xidui.github.io/2017/01/03/%E6%89%8B%E5%8A%A8%E5%9C%A8kubernetes%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%B7%BB%E5%8A%A0%E8%8A%82%E7%82%B9/">这篇文章</a>。当然手动部署可能不是最方便的，如果想要自动部署，可以去看看关于<a target="_blank" rel="noopener" href="https://kubernetes.io/docs/getting-started-guides/kubeadm/">kubeadm</a>的相关资料。</p>
+<h3 id="遇到的问题"><a href="#遇到的问题" class="headerlink" title="遇到的问题"></a>遇到的问题</h3><p>当一切准备就绪并导流的时候，旧机器的log在不断地输出，说明工作正常，但新机器的日志文件没有滚动，请求一个也没有进来。检查pod的状态，发现它是一切正常的:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># kubectl get pod --namespace=noj</span></span><br><span class="line">NAME           READY     STATUS    RESTARTS   AGE</span><br><span class="line">noj-rc-i3aca   1/1       Running   0          2h</span><br><span class="line">noj-rc-vgb5e   1/1       Running   0          2h</span><br></pre></td></tr></table></figure>
+<p>而且，<code>noj-rc-vgb5e</code>这个pod也是顺利被分配到slave2并启动的。这说明<code>kubelet</code>和<code>kube-proxy</code>的配置没有问题，不然是无法收到master机器的调度请求从而部署pod的。因此首先怀疑<strong>两台机器网络状态是否不一致</strong>。<br>在slave2执行<code>systemctl stop firewalld</code>，请求陆陆续续地进来了。因此应该就是iptables配置的问题，某些规则配置错误，导致网络包被reject了。在debug之前先贴上网络结构图方便之后说明。</p>
+<img src="/images/networking.png" class="">
+
+<h3 id="调试纠错"><a href="#调试纠错" class="headerlink" title="调试纠错"></a>调试纠错</h3><h4 id="step1"><a href="#step1" class="headerlink" title="step1"></a>step1</h4><p>由于kubernetes集群的iptables规则较为复杂，执行<code>iptables -L -n</code>和<code>iptables -L -n -t nat</code>发现有上百条记录，对于一条条比对的任务就望而却步了，粗略看了一下一模一样，就连行数都是一样的。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]# iptables -L -n | grep -c &#x27;&#x27;</span><br><span class="line">135</span><br><span class="line">[root@kubernetes-slave-2 ~]# iptables -L -n -t nat| grep -c &#x27;&#x27;</span><br><span class="line">174</span><br></pre></td></tr></table></figure>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">[root@kubernetes-slave-1]# </span><span class="language-bash">iptables -L -n | grep -c <span class="string">&#x27;&#x27;</span></span></span><br><span class="line">135</span><br><span class="line"><span class="meta prompt_">[root@kubernetes-slave-1]# </span><span class="language-bash">iptables -L -n -t nat| grep -c <span class="string">&#x27;&#x27;</span></span></span><br><span class="line">174</span><br></pre></td></tr></table></figure>
+<p><em>这就让我犯难了</em>：既然两台机器的网络环境都一模一样，为什么请求一台能进去，一台进不去呢？</p>
+<h4 id="step2"><a href="#step2" class="headerlink" title="step2"></a>step2</h4><p>我们现在知道的症状有限，还有没有别的可供参考呢？找找其它症状吧。<br>进入slave1的container：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-1]<span class="comment"># kubectl exec -it noj-rc-i3aca bash --namespace=noj</span></span><br><span class="line">root@noj-rc-i3aca:/leetcode/noj<span class="comment"># nslookup google.com</span></span><br><span class="line">Server:         10.254.0.10</span><br><span class="line">Address:        10.254.0.10<span class="comment">#53</span></span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">Name:   google.com</span><br><span class="line">Address: 216.58.194.174</span><br></pre></td></tr></table></figure>
+<p>进入slave2的container（其中nslookup的过程花了很久，大约2-3秒）：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2]<span class="comment"># kubectl exec -it noj-rc-vgb5e bash --namespace=noj</span></span><br><span class="line">root@noj-rc-vgb5e:/leetcode/noj<span class="comment"># nslookup google.com</span></span><br><span class="line">Server:         8.8.8.8</span><br><span class="line">Address:        8.8.8.8<span class="comment">#53</span></span><br><span class="line"></span><br><span class="line">Non-authoritative answer:</span><br><span class="line">Name:   google.com</span><br><span class="line">Address: 216.58.194.174</span><br></pre></td></tr></table></figure>
+<p>在kubernetes集群中，我部署了dns服务在<code>10.254.0.10</code>，slave2确实将<code>10.254.0.10</code>配置为首选dns服务器，但是slave2并没有使用它或者访问不到它。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">root@noj-rc-vgb5e:/leetcode/noj<span class="comment"># cat /etc/resolv.conf</span></span><br><span class="line">search noj.svc.cluster.local svc.cluster.local cluster.local</span><br><span class="line">nameserver 10.254.0.10</span><br><span class="line">nameserver 8.8.8.8</span><br><span class="line">nameserver 8.8.4.4</span><br><span class="line">options ndots:5</span><br></pre></td></tr></table></figure>
+<p>这也就解释了为什么在slave2执行nslookup那么慢的原因：<code>10.254.0.10</code>失败了，再选择<code>8.8.8.8</code>。</p>
+<h4 id="step3"><a href="#step3" class="headerlink" title="step3"></a>step3</h4><p>slave2访问集群内部服务失败，它是不是也无法跨机器ping通docker呢。</p>
+<p>在slave1上ping master</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-1]<span class="comment"># ping 172.16.92.1</span></span><br><span class="line">PING 172.16.92.1 (172.16.92.1) 56(84) bytes of data.</span><br><span class="line">64 bytes from 172.16.92.1: icmp_seq=1 ttl=64 time=2.71 ms</span><br><span class="line">64 bytes from 172.16.92.1: icmp_seq=2 ttl=64 time=2.18 ms</span><br></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># ping 172.16.92.1</span></span><br><span class="line">PING 172.16.92.1 (172.16.92.1) 56(84) bytes of data.</span><br><span class="line">--- 172.16.92.1 ping statistics ---</span><br><span class="line">5 packets transmitted, 0 received, 100% packet loss, time 3999ms</span><br></pre></td></tr></table></figure>
+
+<h4 id="step4"><a href="#step4" class="headerlink" title="step4"></a>step4</h4><p>既然关闭防火墙是可以服务的，那我们一步步在防火墙中添加ACCEPT记录，看看究竟是哪条记录导致网络包被REJECT了。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># iptables -I INPUT 1 -j ACCEPT</span></span><br></pre></td></tr></table></figure>
+<p>非常幸运，在INPUT链添加ACCEPT规则后，一切请求马上都正常了，包括step3中的ping也可以正常服务了。</p>
+<p>删掉刚才添加的ACCEPT规则，并在iptables中打日志，看看<code>ping 172.168.92.1</code>的时候会有那些日志进来：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-2 ~]<span class="comment"># iptables -I INPUT 1 -j LOG</span></span><br></pre></td></tr></table></figure>
+<p><code>tail -f /var/log/messages</code>，我发现有以下的包在slave1是可以顺利通过防火墙的，但在slave2被拒绝了:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Feb 11 08:18:03 kubernetes-slave-2 kernel: IN=eth0 OUT= MAC=5a:e9:b7:d6:88:8d:30:7c:5e:91:9c:30:08:00 SRC=&lt;ip of master&gt; DST=&lt;ip of slave2&gt; LEN=134 TOS=0x00 PREC=0x00 TTL=60 ID=16426 PROTO=UDP SPT=56731 DPT=8472 LEN=114</span><br><span class="line">Feb 11 08:18:04 kubernetes-slave-2 kernel: IN=eth0 OUT= MAC=5a:e9:b7:d6:88:8d:30:7c:5e:91:9c:30:08:00 SRC=&lt;ip of master&gt; DST=&lt;ip of slave2&gt; LEN=134 TOS=0x00 PREC=0x00 TTL=60 ID=16426 PROTO=UDP SPT=56731 DPT=8472 LEN=114</span><br><span class="line">Feb 11 08:18:05 kubernetes-slave-2 kernel: IN=eth0 OUT= MAC=5a:e9:b7:d6:88:8d:30:7c:5e:91:9c:30:08:00 SRC=&lt;ip of master&gt; DST=&lt;ip of slave2&gt; LEN=134 TOS=0x00 PREC=0x00 TTL=60 ID=16426 PROTO=UDP SPT=56731 DPT=8472 LEN=114</span><br></pre></td></tr></table></figure>
+<p>注意到8472端口，这个端口是vxlan用于广播数据报文用的端口，vxlan是flannel底层用于跨机器通信用的。我明明记得配置kubernetes机器的时候对这个端口开了白名单呀:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@kubernetes-slave-1 ~]# iptables -L -n | grep 8472</span><br><span class="line">ACCEPT     udp  --  0.0.0.0/0            0.0.0.0/0            udp dpt:8472 ctstate NEW</span><br><span class="line"></span><br><span class="line">[root@kubernetes-slave-2 ~]# iptables -L -n | grep 8472</span><br><span class="line">ACCEPT     tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:8472 ctstate NEW</span><br></pre></td></tr></table></figure>
+<p>这个时候我终于发现问题了，当时给8472开的白名单误写成了tcp，然而vxlan使用的是udp！！！<br>最后，两条命令解决问题，终于一切都正常了！</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=8472/udp --permanent</span><br><span class="line">systemctl restart firewalld</span><br></pre></td></tr></table></figure>
+
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>一个非常小的错误，导致这一通排查花了我一整天的时间，还是应该多仔细啊。在排查的过程中，其实我也走了一些弯路，刚开始我就确定是网络配置的问题，step2和step3其实都是没有必要的。如果刚开始就直接在iptables中打日志，就可以更快的发现这个问题。因为事后证明新发现的症状对于最后的debug并没有太大的帮助。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2017/02/09/%E8%AE%B0%E4%B8%80%E6%AC%A1kubernetes%E7%BD%91%E7%BB%9C%E8%B0%83%E8%AF%95/" title="记一次kubernetes网络调试" target="_blank" rel="external">http://xidui.github.io/2017/02/09/%E8%AE%B0%E4%B8%80%E6%AC%A1kubernetes%E7%BD%91%E7%BB%9C%E8%B0%83%E8%AF%95/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2017/03/29/%E4%B8%80%E4%B8%AA%E8%97%8F%E5%8C%BF%E5%9C%A8%E9%BB%91%E5%AE%A2%E8%BF%B7%E9%9B%BE%E4%B8%8B%E7%9A%84bug/" title="一个隐藏在黑客迷雾下的bug——记一次黑客攻防"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2017/02/06/%E5%9C%A8kubernetes%E4%B8%AD%E9%85%8D%E7%BD%AEskydns/" title="在kubernetes中配置skydns"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2017/02/09/%E8%AE%B0%E4%B8%80%E6%AC%A1kubernetes%E7%BD%91%E7%BB%9C%E8%B0%83%E8%AF%95/';
+        
+        this.page.identifier = '记一次kubernetes网络调试';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

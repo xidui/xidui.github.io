@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>期望最大化(EM)算法matlab实现 | Hexo</title>
+  <meta name="description" content="一、前言看了吴军博士的《数学之美》感觉受益颇多，好书！第二版第27章讲的是期望最大化(EM)算法，看完就感觉如醍醐灌顶，而且原理上也不难，趁国庆的机会，把它实现了，加深一下理解。 EM算法 的范畴很广，之前几章的 最大熵算法、隐含马尔科夫模型的训练算法 都包括在内。用它做一些文本的自收敛分类效果很好，而且运算复杂度也不高，是一个很不错的选择。当然，关于文本的分类，前几章也有介绍一些其它的算法，也可">
+<meta property="og:type" content="article">
+<meta property="og:title" content="期望最大化(EM)算法matlab实现">
+<meta property="og:url" content="http://xidui.github.io/2015/10/03/%E6%9C%9F%E6%9C%9B%E6%9C%80%E5%A4%A7%E5%8C%96-EM-%E7%AE%97%E6%B3%95matlab%E5%AE%9E%E7%8E%B0/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="一、前言看了吴军博士的《数学之美》感觉受益颇多，好书！第二版第27章讲的是期望最大化(EM)算法，看完就感觉如醍醐灌顶，而且原理上也不难，趁国庆的机会，把它实现了，加深一下理解。 EM算法 的范畴很广，之前几章的 最大熵算法、隐含马尔科夫模型的训练算法 都包括在内。用它做一些文本的自收敛分类效果很好，而且运算复杂度也不高，是一个很不错的选择。当然，关于文本的分类，前几章也有介绍一些其它的算法，也可">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://xidui.github.io/images/em_2000.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/em_4000.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/em_6000.jpg">
+<meta property="og:image" content="http://xidui.github.io/images/QQ20151003-1@2x.png">
+<meta property="article:published_time" content="2015-10-03T08:47:09.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:48:44.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="算法">
+<meta property="article:tag" content="matlab">
+<meta property="article:tag" content="数据挖掘">
+<meta property="article:tag" content="机器学习">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xidui.github.io/images/em_2000.jpg">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2015/10/03/%E6%9C%9F%E6%9C%9B%E6%9C%80%E5%A4%A7%E5%8C%96-EM-%E7%AE%97%E6%B3%95matlab%E5%AE%9E%E7%8E%B0/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-期望最大化-EM-算法matlab实现" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      期望最大化(EM)算法matlab实现
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2015/10/03/%E6%9C%9F%E6%9C%9B%E6%9C%80%E5%A4%A7%E5%8C%96-EM-%E7%AE%97%E6%B3%95matlab%E5%AE%9E%E7%8E%B0/" class="article-date">
+	  <time datetime="2015-10-03T08:47:09.000Z" itemprop="datePublished">2015-10-03</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/matlab/" rel="tag">matlab</a>, <a class="article-tag-link-link" href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" rel="tag">数据挖掘</a>, <a class="article-tag-link-link" href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" rel="tag">机器学习</a>, <a class="article-tag-link-link" href="/tags/%E7%AE%97%E6%B3%95/" rel="tag">算法</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2015/10/03/%E6%9C%9F%E6%9C%9B%E6%9C%80%E5%A4%A7%E5%8C%96-EM-%E7%AE%97%E6%B3%95matlab%E5%AE%9E%E7%8E%B0/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 17k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 1:03(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="一、前言"><a href="#一、前言" class="headerlink" title="一、前言"></a>一、前言</h3><p>看了吴军博士的《数学之美》感觉受益颇多，好书！<br>第二版第27章讲的是期望最大化(EM)算法，看完就感觉如醍醐灌顶，而且原理上也不难，趁国庆的机会，把它实现了，加深一下理解。</p>
+<p><strong>EM算法</strong> 的范畴很广，之前几章的 <strong>最大熵算法</strong>、<strong>隐含马尔科夫模型的训练算法</strong> 都包括在内。<br>用它做一些文本的自收敛分类效果很好，而且运算复杂度也不高，是一个很不错的选择。<br>当然，关于文本的分类，前几章也有介绍一些其它的算法，也可以去参考一下。</p>
+<span id="more"></span>
+
+<h3 id="二、研究思路"><a href="#二、研究思路" class="headerlink" title="二、研究思路"></a>二、研究思路</h3><ol>
+<li>数据初始化<br>  1.1 随机生成5个中心点<br>  1.2 以这5个中心点为圆心，RADIUS为半径内，随机生成1000个点</li>
+<li>EM算法主体<br>  2.1 在图中，另外再取5个随机的初始点<br>  2.2 对于所有5000个点，计算它相对5个初始点的距离，保存到 <em>5000 * 5</em> 的矩阵中 (Expectation)<br>  2.3 把所有5000个点按照 <em>相对5个初始点的距离</em> 归成5类 (Maximization)<br>  2.4 计算5类中，所有点的坐标的平均值，得到5个新的点，作为下次迭代的5个初始点<br>  2.5 从2.2开始迭代，直到收敛<br>  2.6 把n次迭代得到的点连成线</li>
+<li>迭代2，计算不同随机初始点的收敛结果</li>
+</ol>
+<h3 id="三、代码"><a href="#三、代码" class="headerlink" title="三、代码"></a>三、代码</h3><p>matlab代码如下：<br>(ps: matlab语法不熟，100多行写了一整个下午，早知道算法用c++或者python实现，matlab仅用于作图了，不过也算是练一下matlab吧，这次的代码真心觉得写的好丑)</p>
+<figure class="highlight matlab"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">% global parameter which can be altered easily to run a different result</span></span><br><span class="line">WIDTH = <span class="number">10000</span>;</span><br><span class="line">HEIGHT = <span class="number">10000</span>;</span><br><span class="line">RADIUS = <span class="number">6000</span>;</span><br><span class="line">ITERATE_COUNT = <span class="number">10</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">% generate the initial points</span></span><br><span class="line">center_points = [];</span><br><span class="line">all_points = [];</span><br><span class="line">color = [<span class="string">&#x27;b&#x27;</span>, <span class="string">&#x27;m&#x27;</span>, <span class="string">&#x27;g&#x27;</span>, <span class="string">&#x27;y&#x27;</span>, <span class="string">&#x27;c&#x27;</span>];</span><br><span class="line">path = [<span class="string">&#x27;*&#x27;</span>, <span class="string">&#x27;o&#x27;</span>, <span class="string">&#x27;^&#x27;</span>];</span><br><span class="line"><span class="keyword">for</span> <span class="built_in">i</span> = <span class="number">1</span>:<span class="number">5</span></span><br><span class="line">    center_point = [randi(WIDTH) + RADIUS, randi(HEIGHT) + RADIUS];</span><br><span class="line">    center_points(<span class="built_in">i</span>, :) = center_point;</span><br><span class="line">    <span class="keyword">for</span> <span class="built_in">j</span> = <span class="number">1</span>:<span class="number">1000</span></span><br><span class="line">        <span class="keyword">while</span> (<span class="built_in">true</span>)</span><br><span class="line">            point = [randi(WIDTH + RADIUS * <span class="number">2</span>), randi(HEIGHT + RADIUS * <span class="number">2</span>)];</span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">sqrt</span>((point(<span class="number">1</span>) - center_point(<span class="number">1</span>))^<span class="number">2</span> + (point(<span class="number">2</span>) - center_point(<span class="number">2</span>))^<span class="number">2</span>) &lt;= RADIUS)</span><br><span class="line">                <span class="keyword">if</span> (<span class="built_in">length</span>(all_points) == <span class="number">0</span>)</span><br><span class="line">                    all_points(<span class="number">1</span>, :) = point;</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">end</span></span><br><span class="line">                all_points(<span class="built_in">length</span>(all_points(:,<span class="number">1</span>)) + <span class="number">1</span>, :) = point;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">        <span class="built_in">plot</span>(point(<span class="number">1</span>), point(<span class="number">2</span>), [color(<span class="built_in">i</span>), <span class="string">&#x27;.&#x27;</span>]);</span><br><span class="line">        <span class="built_in">hold</span> on;</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="comment">% calculate three paths with three independent initial start points</span></span><br><span class="line"><span class="keyword">for</span> m = <span class="number">1</span>:<span class="number">3</span></span><br><span class="line">    <span class="comment">% init the start points</span></span><br><span class="line">    res = [];</span><br><span class="line">    <span class="keyword">for</span> <span class="built_in">i</span> = <span class="number">1</span>:<span class="number">5</span></span><br><span class="line">        point = [randi(WIDTH), randi(HEIGHT)];</span><br><span class="line">        res(<span class="number">1</span>, <span class="built_in">i</span>, :) = point;</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">% iterate</span></span><br><span class="line">    distance = [];</span><br><span class="line">    <span class="keyword">for</span> <span class="built_in">i</span> = <span class="number">1</span>:ITERATE_COUNT</span><br><span class="line">        s = <span class="built_in">size</span>(res);</span><br><span class="line">        <span class="comment">% cur_center is a 3-dimension matrix</span></span><br><span class="line">        <span class="comment">% the length of first dimension is 1</span></span><br><span class="line">        cur_center = res(s(<span class="number">1</span>), :, :);</span><br><span class="line">        <span class="keyword">for</span> <span class="built_in">j</span> = <span class="number">1</span>:<span class="built_in">length</span>(all_points);</span><br><span class="line">            <span class="keyword">for</span> k = <span class="number">1</span>: s(<span class="number">2</span>);</span><br><span class="line">                point_1 = all_points(<span class="built_in">j</span>, :);</span><br><span class="line">                point_2 = [cur_center(<span class="number">1</span>, k, <span class="number">1</span>), cur_center(<span class="number">1</span>, k, <span class="number">2</span>)];</span><br><span class="line">                distance(<span class="built_in">j</span>, k) = <span class="built_in">sqrt</span>((point_1(<span class="number">1</span>) - point_2(<span class="number">1</span>))^<span class="number">2</span> + (point_1(<span class="number">2</span>) - point_2(<span class="number">2</span>))^<span class="number">2</span>);</span><br><span class="line">            <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">% assign each point to the new defined category</span></span><br><span class="line">        assign = <span class="built_in">zeros</span>(<span class="built_in">length</span>(distance), <span class="number">1</span>);</span><br><span class="line">        <span class="keyword">for</span> <span class="built_in">j</span> = <span class="number">1</span>:s(<span class="number">2</span>)</span><br><span class="line">            temp = distance(:, <span class="built_in">j</span>);</span><br><span class="line">            smallest = <span class="built_in">sort</span>(temp);</span><br><span class="line">            smallest = smallest(<span class="number">1</span>:<span class="number">10</span>);</span><br><span class="line">            <span class="keyword">for</span> l=<span class="number">1</span>:<span class="built_in">length</span>(smallest)</span><br><span class="line">                <span class="keyword">for</span> k = <span class="number">1</span>:<span class="built_in">length</span>(temp)</span><br><span class="line">                    <span class="keyword">if</span> (smallest(l) == temp(k))</span><br><span class="line">                        assign(k) = <span class="built_in">j</span>;</span><br><span class="line">                    <span class="keyword">end</span></span><br><span class="line">                <span class="keyword">end</span></span><br><span class="line">            <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">        <span class="keyword">for</span> <span class="built_in">j</span> = <span class="number">1</span>:<span class="built_in">length</span>(distance)</span><br><span class="line">            <span class="keyword">if</span> (assign(<span class="built_in">j</span>) ~= <span class="number">0</span>)</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            <span class="keyword">end</span></span><br><span class="line">            [value, index] = <span class="built_in">min</span>(distance(<span class="built_in">j</span>, :));</span><br><span class="line">            assign(<span class="built_in">j</span>) = index;</span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">% calculate the total value of x, y for each category</span></span><br><span class="line">        temp2 = <span class="built_in">zeros</span>(s(<span class="number">2</span>), <span class="number">3</span>);</span><br><span class="line">        <span class="keyword">for</span> <span class="built_in">j</span> = <span class="number">1</span>:<span class="built_in">length</span>(assign)</span><br><span class="line">            temp2(assign(<span class="built_in">j</span>), <span class="number">3</span>) = temp2(assign(<span class="built_in">j</span>), <span class="number">3</span>) + <span class="number">1</span>;</span><br><span class="line">            temp2(assign(<span class="built_in">j</span>), <span class="number">1</span>) = temp2(assign(<span class="built_in">j</span>), <span class="number">1</span>) + all_points(<span class="built_in">j</span>, <span class="number">1</span>);</span><br><span class="line">            temp2(assign(<span class="built_in">j</span>), <span class="number">2</span>) = temp2(assign(<span class="built_in">j</span>), <span class="number">2</span>) + all_points(<span class="built_in">j</span>, <span class="number">2</span>);</span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">% get the new local center</span></span><br><span class="line">        <span class="keyword">for</span> <span class="built_in">j</span> = <span class="number">1</span>:s(<span class="number">2</span>)</span><br><span class="line">            res(s(<span class="number">1</span>) + <span class="number">1</span>, <span class="built_in">j</span>, :) = [temp2(<span class="built_in">j</span>, <span class="number">1</span>) / temp2(<span class="built_in">j</span>, <span class="number">3</span>), temp2(<span class="built_in">j</span>, <span class="number">2</span>) / temp2(<span class="built_in">j</span>, <span class="number">3</span>)];</span><br><span class="line">        <span class="keyword">end</span></span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">% plot the local center changing path</span></span><br><span class="line">    s = <span class="built_in">size</span>(res);</span><br><span class="line">    <span class="keyword">for</span> <span class="built_in">i</span> = <span class="number">1</span>:s(<span class="number">2</span>)</span><br><span class="line">        x = res(<span class="number">1</span>:s(<span class="number">1</span>), <span class="built_in">i</span>, <span class="number">1</span>);</span><br><span class="line">        y = res(<span class="number">1</span>:s(<span class="number">1</span>), <span class="built_in">i</span>, <span class="number">2</span>);</span><br><span class="line">        <span class="built_in">plot</span>(x, y, [<span class="string">&#x27;r&#x27;</span>, path(m), <span class="string">&#x27;-&#x27;</span>]);</span><br><span class="line">        <span class="built_in">hold</span> on;</span><br><span class="line">    <span class="keyword">end</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"></span><br><span class="line"><span class="comment">% save the picture</span></span><br><span class="line">title([<span class="string">&#x27;期望最大化算法 半径&#x27;</span>, num2str(RADIUS)]);</span><br><span class="line">saveas(gcf, [<span class="string">&#x27;em_&#x27;</span>, num2str(RADIUS), <span class="string">&#x27;.jpg&#x27;</span>])</span><br><span class="line"><span class="built_in">hold</span> off;</span><br></pre></td></tr></table></figure>
+
+<h3 id="四、实验结果"><a href="#四、实验结果" class="headerlink" title="四、实验结果"></a>四、实验结果</h3><p>半径2000</p>
+<img src="/images/em_2000.jpg" class="">
+
+<p>半径4000</p>
+<img src="/images/em_4000.jpg" class="">
+
+<p>半径6000</p>
+<img src="/images/em_6000.jpg" class="">
+
+<h3 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h3><p>分类的效果还是比较显著的</p>
+<ul>
+<li>聚类结果总是能收敛的</li>
+<li>圆形点阵比较分散的时候，无论随机起始点在哪里，总是能收敛到相同的位置</li>
+<li>当圆形点阵比较接近的时候，可能会出现若干个局部极点，随机的起始点的位置一定程度上可以影响最后收敛的位置</li>
+<li>一般迭代规模若干次就能够收敛</li>
+</ul>
+<p>最后再贴上一张《数学之美》中很有比喻意义原图，可以非常形象的诠释这个算法的原理：</p>
+<img src="/images/QQ20151003-1@2x.png" class="">
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2015/10/03/%E6%9C%9F%E6%9C%9B%E6%9C%80%E5%A4%A7%E5%8C%96-EM-%E7%AE%97%E6%B3%95matlab%E5%AE%9E%E7%8E%B0/" title="期望最大化(EM)算法matlab实现" target="_blank" rel="external">http://xidui.github.io/2015/10/03/%E6%9C%9F%E6%9C%9B%E6%9C%80%E5%A4%A7%E5%8C%96-EM-%E7%AE%97%E6%B3%95matlab%E5%AE%9E%E7%8E%B0/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2015/10/13/mongodb%E9%9B%86%E7%BE%A4-%E4%B8%80-%E2%80%94%E2%80%94%E6%90%AD%E5%BB%BA/" title="mongodb集群(一)——搭建"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2015/09/27/mysql-mongodb%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/" title="mysql mongodb性能测试"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2015/10/03/%E6%9C%9F%E6%9C%9B%E6%9C%80%E5%A4%A7%E5%8C%96-EM-%E7%AE%97%E6%B3%95matlab%E5%AE%9E%E7%8E%B0/';
+        
+        this.page.identifier = '期望最大化-EM-算法matlab实现';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

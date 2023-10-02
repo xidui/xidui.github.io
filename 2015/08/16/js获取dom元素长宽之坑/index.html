@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>js获取dom元素长宽之坑 | Hexo</title>
+  <meta name="description" content="此坑消耗我好久时间，mark一下。 1.需求描述最近项目需要，要做一个根据鼠标事件位置显示popover的功能效果。要在鼠标点击位置之上，居中显示一个template的div，因此我需要获得这个div的长宽。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="js获取dom元素长宽之坑">
+<meta property="og:url" content="http://xidui.github.io/2015/08/16/js%E8%8E%B7%E5%8F%96dom%E5%85%83%E7%B4%A0%E9%95%BF%E5%AE%BD%E4%B9%8B%E5%9D%91/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="此坑消耗我好久时间，mark一下。 1.需求描述最近项目需要，要做一个根据鼠标事件位置显示popover的功能效果。要在鼠标点击位置之上，居中显示一个template的div，因此我需要获得这个div的长宽。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://xidui.github.io/images/angular_element.png">
+<meta property="og:image" content="http://xidui.github.io/images/QQ20150816-1@2x.png">
+<meta property="og:image" content="http://xidui.github.io/images/QQ20150816-2@2x.png">
+<meta property="article:published_time" content="2015-08-16T09:14:15.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:47:18.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="js">
+<meta property="article:tag" content="angularjs">
+<meta property="article:tag" content="jquery">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xidui.github.io/images/angular_element.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2015/08/16/js%E8%8E%B7%E5%8F%96dom%E5%85%83%E7%B4%A0%E9%95%BF%E5%AE%BD%E4%B9%8B%E5%9D%91/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-js获取dom元素长宽之坑" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      js获取dom元素长宽之坑
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2015/08/16/js%E8%8E%B7%E5%8F%96dom%E5%85%83%E7%B4%A0%E9%95%BF%E5%AE%BD%E4%B9%8B%E5%9D%91/" class="article-date">
+	  <time datetime="2015-08-16T09:14:15.000Z" itemprop="datePublished">2015-08-16</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/angularjs/" rel="tag">angularjs</a>, <a class="article-tag-link-link" href="/tags/jquery/" rel="tag">jquery</a>, <a class="article-tag-link-link" href="/tags/js/" rel="tag">js</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2015/08/16/js%E8%8E%B7%E5%8F%96dom%E5%85%83%E7%B4%A0%E9%95%BF%E5%AE%BD%E4%B9%8B%E5%9D%91/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 15k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 55 mins.(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <p>此坑消耗我好久时间，mark一下。</p>
+<h3 id="1-需求描述"><a href="#1-需求描述" class="headerlink" title="1.需求描述"></a>1.需求描述</h3><p>最近项目需要，要做一个根据鼠标事件位置显示popover的功能效果。要在鼠标点击位置之上，居中显示一个template的div，<br>因此我需要获得这个div的长宽。</p>
+<span id="more"></span>
+
+<h3 id="2-遇到的问题"><a href="#2-遇到的问题" class="headerlink" title="2.遇到的问题"></a>2.遇到的问题</h3><p>在获得这个div的长宽问题上，经历了一坑再坑的过程。就连chrome本身都有一个诡异的问题要戏耍我一下。<br>1.对于dom元素、jquery元素容易搞混<br>  由于项目采用的angular，在jquery之上又封装了一层，对于没有系统用过jquery的来说，直接使用angular，很多概念确实容易混得更加厉害。<br>  属性、方法属于原生dom的范畴还是jquery的范畴亦或是angular的范畴这一点就会比较混乱，在使用上也被坑了一下。好在这一点通过阅读各种资料可以克服，<br>  另外，angularjs的官方文档也有说明, angular.element()返回的是jquery对象。<br>  <img src="/images/angular_element.png" class=""></p>
+<p>2.在dom对象插入前，无论如何获取不了这个dom对象的长宽的<br>  这点导致我纠结了好久popover代码的显示逻辑</p>
+<p>3.在dom对象插入以后，如果是隐藏的元素，通过jquery和dom对象获取的数据不一样</p>
+<p><strong>4.chrome调试器输出的jquery对象里面的值是根据你展开这个对象的时候再去获取的</strong><br>  在你打开之前，里面属性的状态和值是不确定的，但当你打开后就锁定了（<em>薛定谔的猫，是你吗？</em>）。<br>  这点着实是大坑啊，在调试的时候这点太坑人了！也不知道算不算是chrome的bug。</p>
+<p>  起初我的代码是这么写的:<br>  <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">scope.<span class="property">showPopover</span> = <span class="keyword">function</span> (<span class="params">e</span>)&#123;</span><br><span class="line">  $popover = angular.<span class="title function_">element</span>(template);     <span class="comment">// template是一串html文本，这行代码返回一个jquery对象</span></span><br><span class="line">  $compile($popover)(scope);                <span class="comment">// 使用angular编译器编译</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover);</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover.<span class="title function_">height</span>());           <span class="comment">// 输出 0</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover[<span class="number">0</span>].<span class="property">clientHeight</span>);    <span class="comment">// 输出 0</span></span><br><span class="line">  $container.<span class="title function_">append</span>($popover);              <span class="comment">// container是另外一个jquery对象，用于放popover</span></span><br><span class="line">  <span class="keyword">var</span> top = e.<span class="property">pageY</span> - $popover.<span class="title function_">height</span>();</span><br><span class="line">  <span class="keyword">var</span> left = e.<span class="property">pageX</span> - $popover.<span class="title function_">width</span>();    <span class="comment">// 根据鼠标，把弹出框放在合适的位置</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover);</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover.<span class="title function_">height</span>());           <span class="comment">// 输出 133</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover[<span class="number">0</span>].<span class="property">clientHeight</span>);    <span class="comment">// 输出 0</span></span><br><span class="line">  $popover</span><br><span class="line">    .<span class="title function_">css</span>(<span class="string">&#x27;top&#x27;</span>, top + <span class="string">&#x27;px&#x27;</span>)</span><br><span class="line">    .<span class="title function_">css</span>(<span class="string">&#x27;left&#x27;</span>, left + <span class="string">&#x27;px&#x27;</span>);</span><br><span class="line">  $popover.<span class="title function_">css</span>(<span class="string">&#x27;display&#x27;</span>, <span class="string">&#x27;block&#x27;</span>);         <span class="comment">// 因为是popover，所以该窗口由html里面的class控制它默认是不显示的，现在让它显示</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover);</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover.<span class="title function_">height</span>());           <span class="comment">// 输出 133</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover[<span class="number">0</span>].<span class="property">clientHeight</span>);    <span class="comment">// 输出 133</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br>  吊诡的问题在于，无论我打开哪个$popover的输出，里面的结构都是这样的:<br>  <img src="/images/QQ20150816-1@2x.png" class=""><br>  明显clientHeight有值啊，为啥在display以前输出都是0，这简直就是我定义一个变量为1，它死活就输出0！？（这个问题后文还会涉及到）</p>
+<p>  然后我把display这一行注释掉:<br>  <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">scope.<span class="property">showPopover</span> = <span class="keyword">function</span> (<span class="params">e</span>)&#123;</span><br><span class="line">  $popover = angular.<span class="title function_">element</span>(template);     <span class="comment">// template是一串html文本，这行代码返回一个jquery对象</span></span><br><span class="line">  $compile($popover)(scope);                <span class="comment">// 使用angular编译器编译</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover);</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover.<span class="title function_">height</span>());           <span class="comment">// 输出 0</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover[<span class="number">0</span>].<span class="property">clientHeight</span>);    <span class="comment">// 输出 0</span></span><br><span class="line">  $container.<span class="title function_">append</span>($popover);              <span class="comment">// container是另外一个jquery对象，用于放popover</span></span><br><span class="line">  <span class="keyword">var</span> top = e.<span class="property">pageY</span> - $popover.<span class="title function_">height</span>();</span><br><span class="line">  <span class="keyword">var</span> left = e.<span class="property">pageX</span> - $popover.<span class="title function_">width</span>();    <span class="comment">// 根据鼠标，把弹出框放在合适的位置</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover);</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover.<span class="title function_">height</span>());           <span class="comment">// 输出 133</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover[<span class="number">0</span>].<span class="property">clientHeight</span>);    <span class="comment">// 输出 0</span></span><br><span class="line">  $popover</span><br><span class="line">    .<span class="title function_">css</span>(<span class="string">&#x27;top&#x27;</span>, top + <span class="string">&#x27;px&#x27;</span>)</span><br><span class="line">    .<span class="title function_">css</span>(<span class="string">&#x27;left&#x27;</span>, left + <span class="string">&#x27;px&#x27;</span>);</span><br><span class="line">  <span class="comment">//$popover.css(&#x27;display&#x27;, &#x27;block&#x27;);       // 因为是popover，所以该窗口由html里面的class控制它默认是不显示的，现在让它显示</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover);</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover.<span class="title function_">height</span>());           <span class="comment">// 输出 133</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover[<span class="number">0</span>].<span class="property">clientHeight</span>);    <span class="comment">// 输出 0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br>  任意一个popover的输出都是这个样子的：<br>  <img src="/images/QQ20150816-2@2x.png" class=""><br>  <strong>难道后执行的代码会影响前面已经执行的代码的输出？这点太不可思议了！</strong></p>
+<p>  最诡异的一个测试用例的代码是这样写的:<br>  <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">scope.<span class="property">showPopover</span> = <span class="keyword">function</span> (<span class="params">e</span>)&#123;</span><br><span class="line">  $popover = angular.<span class="title function_">element</span>(template);     <span class="comment">// template是一串html文本，这行代码返回一个jquery对象</span></span><br><span class="line">  $compile($popover)(scope);                <span class="comment">// 使用angular编译器编译</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover);</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover.<span class="title function_">height</span>());           <span class="comment">// 输出 0</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover[<span class="number">0</span>].<span class="property">clientHeight</span>);    <span class="comment">// 输出 0</span></span><br><span class="line">  $container.<span class="title function_">append</span>($popover);              <span class="comment">// container是另外一个jquery对象，用于放popover</span></span><br><span class="line">  <span class="keyword">var</span> top = e.<span class="property">pageY</span> - $popover.<span class="title function_">height</span>();</span><br><span class="line">  <span class="keyword">var</span> left = e.<span class="property">pageX</span> - $popover.<span class="title function_">width</span>();    <span class="comment">// 根据鼠标，把弹出框放在合适的位置</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover);</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover.<span class="title function_">height</span>());           <span class="comment">// 输出 133</span></span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>($popover[<span class="number">0</span>].<span class="property">clientHeight</span>);    <span class="comment">// 输出 0</span></span><br><span class="line">  $popover</span><br><span class="line">    .<span class="title function_">css</span>(<span class="string">&#x27;top&#x27;</span>, top + <span class="string">&#x27;px&#x27;</span>)</span><br><span class="line">    .<span class="title function_">css</span>(<span class="string">&#x27;left&#x27;</span>, left + <span class="string">&#x27;px&#x27;</span>);</span><br><span class="line">  <span class="built_in">setTimeout</span>(<span class="keyword">function</span> (<span class="params"></span>)&#123;</span><br><span class="line">    $popover.<span class="title function_">css</span>(<span class="string">&#x27;display&#x27;</span>, <span class="string">&#x27;block&#x27;</span>);       <span class="comment">// 因为是popover，所以该窗口由html里面的class控制它默认是不显示的，现在让它显示</span></span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>($popover);</span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>($popover.<span class="title function_">height</span>());         <span class="comment">// 输出 133</span></span><br><span class="line">    <span class="variable language_">console</span>.<span class="title function_">log</span>($popover[<span class="number">0</span>].<span class="property">clientHeight</span>);  <span class="comment">// 输出 133</span></span><br><span class="line">  &#125;, <span class="number">10000</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br>  只要我在10秒内打开这个popover里面的内容，里面将永远展示第二张图的结果<br>  只要我在10秒后打开这个popover里面的内容，里面将永远展示第一张图的结果</p>
+<p>  看来对于jquery对象这里面的输出难道还是根据你查看的时间定的？</p>
+<h3 id="3-总结"><a href="#3-总结" class="headerlink" title="3.总结"></a>3.总结</h3><p>1.在dom对象或者是jquery对象还没有插入到页面中时，无论是通过jquery中的height()或者width()方法，<br>或者直接通过dom对象中的各种height包括(clientHeight, offsetHeight, scrollHeight)都是无法获得它的高度值的<br>stackoverflow上这个解答印证了这一点<br><a target="_blank" rel="noopener" href="http://stackoverflow.com/questions/7693244/javascript-jquery-how-to-get-the-width-of-an-element-css-class-that-hasnt-b">http://stackoverflow.com/questions/7693244/javascript-jquery-how-to-get-the-width-of-an-element-css-class-that-hasnt-b</a></p>
+<p>2.在对象style的display属性为none的作用下，也会一定程度上影响这个jquery对象的长宽取值<br>具体如下：<br>  2.1 从jquery对象的height()和width()方法可以获取到隐藏元素的长宽<br>  2.2 dom元素上的各种height和width属性的值均为0</p>
+<p>如果有我错误或者理解不当的地方，还请各路豪杰在评论区指出！</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2015/08/16/js%E8%8E%B7%E5%8F%96dom%E5%85%83%E7%B4%A0%E9%95%BF%E5%AE%BD%E4%B9%8B%E5%9D%91/" title="js获取dom元素长宽之坑" target="_blank" rel="external">http://xidui.github.io/2015/08/16/js%E8%8E%B7%E5%8F%96dom%E5%85%83%E7%B4%A0%E9%95%BF%E5%AE%BD%E4%B9%8B%E5%9D%91/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2015/08/23/python-%E8%B0%83%E7%94%A8C-ctypes%E5%BA%93%E5%B0%9D%E8%AF%95/" title="python调用C++ —— ctypes库尝试"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2015/08/09/threadpool-in-python/" title="threadpool in python"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2015/08/16/js%E8%8E%B7%E5%8F%96dom%E5%85%83%E7%B4%A0%E9%95%BF%E5%AE%BD%E4%B9%8B%E5%9D%91/';
+        
+        this.page.identifier = 'js获取dom元素长宽之坑';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

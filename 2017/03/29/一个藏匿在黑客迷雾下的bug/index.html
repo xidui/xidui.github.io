@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>一个隐藏在黑客迷雾下的bug——记一次黑客攻防 | Hexo</title>
+  <meta name="description" content="前言细细回想这几周经历的问题以及过程，还是真是挺有趣的，迫不及待地希望整理一下总结给各位看官。关于文章的标题，如何既能吸引读者，又能避免标题党的嫌疑，着实让我斟酌了一番，后来就定了在坐看到的这个版本，个人觉得没毛病~ 让我们进入正题">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一个隐藏在黑客迷雾下的bug——记一次黑客攻防">
+<meta property="og:url" content="http://xidui.github.io/2017/03/29/%E4%B8%80%E4%B8%AA%E8%97%8F%E5%8C%BF%E5%9C%A8%E9%BB%91%E5%AE%A2%E8%BF%B7%E9%9B%BE%E4%B8%8B%E7%9A%84bug/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="前言细细回想这几周经历的问题以及过程，还是真是挺有趣的，迫不及待地希望整理一下总结给各位看官。关于文章的标题，如何既能吸引读者，又能避免标题党的嫌疑，着实让我斟酌了一番，后来就定了在坐看到的这个版本，个人觉得没毛病~ 让我们进入正题">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://xidui.github.io/images/hacker-email.png">
+<meta property="og:image" content="http://xidui.github.io/images/user-complaint-1.png">
+<meta property="og:image" content="http://xidui.github.io/images/user-complaint-2.png">
+<meta property="og:image" content="http://xidui.github.io/images/user-complaint-3.png">
+<meta property="og:image" content="http://xidui.github.io/images/hacker-mysql-info.png">
+<meta property="og:image" content="http://xidui.github.io/images/hacker-mysql-lock-1.png">
+<meta property="og:image" content="http://xidui.github.io/images/hacker-mysql-lock-2.png">
+<meta property="og:image" content="http://xidui.github.io/images/hacker-mysql-lock-3.png">
+<meta property="og:image" content="http://xidui.github.io/images/hacker-new-relic.png">
+<meta property="article:published_time" content="2017-03-30T04:28:52.000Z">
+<meta property="article:modified_time" content="2018-12-29T02:22:08.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="mysql">
+<meta property="article:tag" content="hacker">
+<meta property="article:tag" content="网络攻防">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xidui.github.io/images/hacker-email.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2017/03/29/%E4%B8%80%E4%B8%AA%E8%97%8F%E5%8C%BF%E5%9C%A8%E9%BB%91%E5%AE%A2%E8%BF%B7%E9%9B%BE%E4%B8%8B%E7%9A%84bug/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-一个藏匿在黑客迷雾下的bug" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      一个隐藏在黑客迷雾下的bug——记一次黑客攻防
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2017/03/29/%E4%B8%80%E4%B8%AA%E8%97%8F%E5%8C%BF%E5%9C%A8%E9%BB%91%E5%AE%A2%E8%BF%B7%E9%9B%BE%E4%B8%8B%E7%9A%84bug/" class="article-date">
+	  <time datetime="2017-03-30T04:28:52.000Z" itemprop="datePublished">2017-03-29</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/hacker/" rel="tag">hacker</a>, <a class="article-tag-link-link" href="/tags/mysql/" rel="tag">mysql</a>, <a class="article-tag-link-link" href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" rel="tag">网络攻防</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2017/03/29/%E4%B8%80%E4%B8%AA%E8%97%8F%E5%8C%BF%E5%9C%A8%E9%BB%91%E5%AE%A2%E8%BF%B7%E9%9B%BE%E4%B8%8B%E7%9A%84bug/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 8.3k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 30 mins.(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>细细回想这几周经历的问题以及过程，还是真是挺有趣的，迫不及待地希望整理一下总结给各位看官。<br>关于文章的标题，如何既能吸引读者，又能避免标题党的嫌疑，着实让我斟酌了一番，后来就定了在坐看到的这个版本，个人觉得没毛病~</p>
+<p>让我们进入正题</p>
+<span id="more"></span>
+
+<h3 id="阶段一"><a href="#阶段一" class="headerlink" title="阶段一"></a>阶段一</h3><h4 id="3月10日"><a href="#3月10日" class="headerlink" title="3月10日"></a>3月10日</h4><p>leetcode完成主数据库迁移，一步步往分布式架构扩展</p>
+<h4 id="3月15日"><a href="#3月15日" class="headerlink" title="3月15日"></a>3月15日</h4><p>收到了一封黑客的邮件，说发现了系统漏洞，并勒索</p>
+<img src="/images/hacker-email.png" class="">
+
+<h4 id="3月17日中午"><a href="#3月17日中午" class="headerlink" title="3月17日中午"></a>3月17日中午</h4><p>发现user ranking功能失效<br>经检查，是因为我们迁移了主数据库的原因。老数据库所在的机器有一个daily job每天自动更新用户排名。由于新数据库机器的ip不一样，导致脚本过去7天都没有正常工作。于是修改了配置，继续投入使用。</p>
+<h4 id="3月17日下午5点"><a href="#3月17日下午5点" class="headerlink" title="3月17日下午5点"></a>3月17日下午5点</h4><p>不少用户在twitter抱怨无法登陆，我自己也试了一下，确实无法登陆。但是除了登录api，其它所有的api都没有问题，已经登陆的用户也都能正常做题。</p>
+<img src="/images/user-complaint-1.png" class="">
+<img src="/images/user-complaint-2.png" class="">
+<img src="/images/user-complaint-3.png" class="">
+<p>这不禁让我们想到了2天前收到的黑客邮件，怀疑黑客正在攻击。于是开始检查各种系统参数和日志。检查到旧的数据库所在机器，有一个很奇怪的参数，发现mysqld进程的cpu占用率将近100%，明明这个旧的mysql已经弃用了，到底是谁在里面呢？登录mysql去一探究竟：</p>
+<img src="/images/hacker-mysql-info.png" class="">
+<p>不断刷新发现这个用户执行的sql语句由comment_id一条条进行累加，断定有人在 <strong>恶意拖库</strong>。</p>
+<p>为了安全起见，在排查前，我们决定 <strong>关闭nginx，关闭整个网站</strong>。</p>
+<p>这个mysql账户是我们旧的wordpress后台配置的，这个网站(<a target="_blank" rel="noopener" href="https://article.leetcode.com)是我们之前用过的子站点,现在也已经弃用了,为了让以前的链接依然可以工作,我们并没有关闭这个站点./">https://article.leetcode.com)是我们之前用过的子站点，现在也已经弃用了，为了让以前的链接依然可以工作，我们并没有关闭这个站点。</a></p>
+<p>排查逻辑：</p>
+<ol>
+<li>mysql账户的登录权限只有localhost，排除远程登录执行sql的可能</li>
+<li>mysql账户的密码只配置在本机，服务器并没有开放root登录权限，sudo账户的密码又极其复杂，排除暴力破解服务器密码的可能</li>
+<li>通过服务器登录记录(last 命令)，并没有发现可疑ip<br>因此，断定这些sql只能是通过wordpress代码在执行。然而，wordpress并没有开放任何一个api可以去通过id遍历某张表。只能是 <strong>sql注入</strong>！！！</li>
+</ol>
+<p>经查，确实是sql注入。这是由某个过时的wordpress插件带来的问题，网上也有针对这个bug一模一样的sql注入流程，有兴趣的读者可以<a target="_blank" rel="noopener" href="http://seclists.org/fulldisclosure/2014/Mar/399">戳这里</a>看看。</p>
+<p>定位问题后，我们关闭了<code>article.leetcode.com</code>，并启动网站，当天用户无法登陆的问题消失了。</p>
+<h4 id="安全性分析"><a href="#安全性分析" class="headerlink" title="安全性分析"></a>安全性分析</h4><ol>
+<li>由于我们的服务器密码并没有泄露，不需要更换服务器和账户</li>
+<li>被拖的库只是弃用的db中弃用的表，没有什么敏感信息</li>
+<li>即使主库被攻破，用户密码是经过hash存储的，攻击者并不能直接获益</li>
+<li><strong>由于无法获得sql执行记录，不知道在这张表被拖库前，黑客还做了什么其他的事情，这点尚有担忧</strong></li>
+</ol>
+<p>总体来说，这次被攻击对网站带来的损失不大，但也让我们一身冷汗。</p>
+<h3 id="阶段二"><a href="#阶段二" class="headerlink" title="阶段二"></a>阶段二</h3><p>如果这件事情就这么结束了，那就再好不过了。然而，用户无法登陆的问题，在后面的几天持续出现，而且每天都会完整持续1小时以上，不禁让我们陷入沉思。莫非黑客还在？但是我们不管怎么找都没有发现什么蛛丝马迹，看着每天用户在论坛抱怨，感觉心急如焚，但又不知道该如何是好，哎！</p>
+<h4 id="3月20日-3月24日"><a href="#3月20日-3月24日" class="headerlink" title="3月20日~3月24日"></a>3月20日~3月24日</h4><p>每天我们都会监控用户登录失败的情况，然后在持续登录失败的时段内，发现了如下规律：</p>
+<ol>
+<li>网站请求数量并没有指数级的增长<br>不光没有指数级，基本如同往常。这点排除了 <strong>DDOS攻击</strong> 的可能。</li>
+<li>数据库的CPU占用并没有明显增加<br>说明并不是过大的数据库负载导致了响应变慢。同时，其它接口的响应速度都很快，验证了这个推断。</li>
+<li>数据库的processlist有不少user表的update记录阻塞<img src="/images/hacker-mysql-lock-1.png" class="">
+用户登陆的时候会触发数据库写操作，更新上次登录的时间。这些简单的update语句持续阻塞，只能说明一个原因，表单记录被其它 <strong>transaction</strong> 锁住了</li>
+<li>通过<code>show status like &#39;%lock%&#39;</code>发现锁的时间不断增长<img src="/images/hacker-mysql-lock-2.png" class=""></li>
+<li>通过<code>show engine innodb status</code>发现了一堆锁的记录，而且在不断地变多<img src="/images/hacker-mysql-lock-3.png" class=""></li>
+</ol>
+<p>果然是锁的问题。但是，到底是谁，是什么操作导致了这么多锁？谁会锁定user表？还是没有任何头绪。</p>
+<h4 id="3月25日下午5点"><a href="#3月25日下午5点" class="headerlink" title="3月25日下午5点"></a>3月25日下午5点</h4><p>网站一如既往地登录超时，在外面参加聚会的我不得不拿出电脑，继续排查(今后若是有聚会，各位朋友请包容我这随身携带笔记本的习惯~)。这个时候，我在<a target="_blank" rel="noopener" href="https://newrelic.com/">new relic</a>监控发现了一个值得关注的信息:</p>
+<img src="/images/hacker-new-relic.png" class="">
+<p>网站出现登录超时的情况是有迹可循的，每天固定在同一个时间出现一次。难道黑客攻击还会有一个定时任务吗，而且都是攻击一小时左右，显然不太可能。莫非这是一个我们自己的定时任务？</p>
+<p>突然想到了我们的 <strong>user ranking脚本</strong>，而且每天发生登录超时的时候正好是脚本定时执行的时候！！！这简直是突破性的信息，因为如果真是这个脚本造成的话，那我们就排除了黑客在恶意登录用户账户的可能。</p>
+<p><strong>这个时候又一个新的问题来了</strong><br>user ranking脚本只更新user_ranking这张表，为什么会锁住user表导致无法登录呢？而且它只锁了user表，网站的其它任何操作都能够顺利执行，已登录用户的做题完全不受影响。</p>
+<p>因为还在聚会，也确定没有什么大问题，mark了一下以后，留待第二天继续检查。</p>
+<h4 id="3月27日下午5点"><a href="#3月27日下午5点" class="headerlink" title="3月27日下午5点"></a>3月27日下午5点</h4><p>登录失败的情况准时出现了，我马上kill掉了user ranking定时任务。登录失败的情况瞬间好转！！！自此，基本已经确定是该脚本导致的问题。这时，问题只剩一个了：<strong>为什么更新user ranking表的时候，会锁住user表？</strong></p>
+<h4 id="3月28日"><a href="#3月28日" class="headerlink" title="3月28日"></a>3月28日</h4><p>定位到问题之后，我在本地测试环境也重现了这个问题，这大大降低了调试的难度，不需要去线上调试了！<br>同时，查阅了各种mysql lock的文档，试图了解数据库何时会产生锁，何时会释放锁。同时仔细阅读了user ranking脚本，下面截取的某个值得怀疑的代码段(考虑到网站的隐私，我把字段和表格改了名字)：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> index, (user_id, ac_count) <span class="keyword">in</span> <span class="built_in">enumerate</span>(sort_list):</span><br><span class="line">    <span class="keyword">if</span> index % <span class="number">1000</span> == <span class="number">0</span>:</span><br><span class="line">         <span class="built_in">print</span> <span class="string">&quot;write query: &quot;</span>, index</span><br><span class="line">    cur.execute(<span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">    INSERT INTO user_ranking (user_id, ranking)</span></span><br><span class="line"><span class="string">    VALUES (%d, %d)</span></span><br><span class="line"><span class="string">    ON DUPLICATE KEY UPDATE</span></span><br><span class="line"><span class="string">    ranking = VALUES(ranking)</span></span><br><span class="line"><span class="string">    &#x27;&#x27;&#x27;</span> % (user_id, index + <span class="number">1</span>))</span><br><span class="line">con.commit()</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><p>commit操作为什么要放在最外面呢？<br>测试环境尝试了一下，如果把commit操作放在for循环里面，登录失败的情况就不会出现。同时，数据库里的lock数量和lock时间并不会增长。果然，<strong>数据库的transaction要通过commit才能结束，然后才能释放它所占有的锁</strong>。</p>
+</li>
+<li><p>user_ranking表和user表之间是通过user_id作为外键的，莫非？<br>手动去掉了这个外键的限制，我发现即使把上一步的commit操作放在for循环外面，也不会导致登录失败。看来，<strong>transaction在更新一条记录的时候，不仅会锁住相应记录本身，还会通过外键把其它表的相应行也一起锁住</strong></p>
+</li>
+</ol>
+<p>自此，这个问题终于浮出了水面！原来是这个历史遗留脚本的一个小错误，导致了这个莫名其妙的登录失败问题。解决的办法很简单，把commit那一行，挪入for循环。如果考虑transaction提交次数太频繁，可以每隔一定数量sql后，再执行commit。</p>
+<p><strong>那么问题来了</strong><br>挖掘机哪家强？当然不是这个问题~</p>
+<p>为什么这个登录失败的现象在数据库迁移之前没有发生，而迁移之后发生了呢？(略有经验的)我想想就得出了结论(前文也有所提及)，user ranking脚本之前是和数据库跑在同一台机器的，而迁移之后，跑在了不同机器，大大增加了网络的时间成本。一次网络传输的时间可能可以忽略不计，如果百万次网络来回的时间，那可就不是小数目了，毕竟脚本中for循环每执行一次，至少就是一次网络传输。</p>
+<p><strong>将user表的条目乘以网络延迟的时间，果然是一个多小时！</strong> (敏锐的读者或许已经可以根据我的信息得到某些其它的东西了，不再透露更多，对于本文也不重要)。</p>
+<p>好奇的我又在老数据库上执行了一遍脚本，1分钟就完成了。原来如此，怪不得之前一直没有用户抱怨登录失败的问题。<strong>一来</strong> 是因为user表被锁的时间太短，几乎没有用户受到影响(已登录用户是通过session保留登录态的，不需要调用登录操作)。<strong>二来</strong> 是因为之前的脚本不是一次性锁住所有用户的，而是通过一条条语句，逐渐增加的。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><h4 id="关于这件事的总结"><a href="#关于这件事的总结" class="headerlink" title="关于这件事的总结"></a>关于这件事的总结</h4><p>一个mysql锁的问题和一个黑客sql注入的问题混杂在了一起，导致这个bug本身难以被发现。通过孜孜不倦的努力，终于还是把它查得水落石出，畅快淋漓啊！<br>本次事件有诸多巧合</p>
+<ol>
+<li>黑客敲诈的时间和数据库迁移的时间正好重叠</li>
+<li>黑客声称能登录任何账户和这个bug所体现的现象非常符合</li>
+<li>修改脚本配置，导致用户登录失败。通过排查这个bug，我们才发现了黑客，让我们注意力集中到了黑客身上，从而忽略了这个bug本身</li>
+</ol>
+<p>我们有告诉黑客，愿意以金钱购买他所说的漏洞，但他并没有回复，直接开始攻击。在解决问题之后，网站并无任何异常，他也不再进行进一步勒索，由此推断他手中已无底牌。当初的声称可能只是吓唬，以提高他能勒索的金额，通过sql注入来告诉我们他确实有几张牌。</p>
+<p>对于网络攻防更有经验的读者希望可以告知一些我们在排查过程中做的不足的地方，加以学习，感激不尽！</p>
+<h4 id="事件之外的总结"><a href="#事件之外的总结" class="headerlink" title="事件之外的总结"></a>事件之外的总结</h4><ol>
+<li>分布式软件架构的复杂度会随着分布式规模的增大而增大。单机或者小规模集群中没有体现的问题，会在规模变大之后被无限放大。</li>
+<li>没事儿，少折腾数据库。或者说在不够了解系统和数据库配置的情况下，折腾数据库的风险是巨大的，我将会有一篇文章详细介绍leetcode数据库迁移的过程，敬请期待。</li>
+<li>分布式系统问题的排查，需要关注方方面面，远比单机困难的多。对于小公司系统的扩容，最佳的做法是增加服务器的性能，其次才是考虑分布式架构的演变，因为这将大大增加维护成本。</li>
+<li>对于业务导向的小公司来说，如果暂时系统的高可用性不是首要的需求，使用足够强的单机，就足以支撑你们当前的业务了。而且一般的网络主机供应商所能提供的高可用性至少也有3个9(99.9%)。如果你们的业务已经强大到单机无法支撑，那么恭喜你们，你们离融资和扩张不远了。</li>
+</ol>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2017/03/29/%E4%B8%80%E4%B8%AA%E8%97%8F%E5%8C%BF%E5%9C%A8%E9%BB%91%E5%AE%A2%E8%BF%B7%E9%9B%BE%E4%B8%8B%E7%9A%84bug/" title="一个隐藏在黑客迷雾下的bug——记一次黑客攻防" target="_blank" rel="external">http://xidui.github.io/2017/03/29/%E4%B8%80%E4%B8%AA%E8%97%8F%E5%8C%BF%E5%9C%A8%E9%BB%91%E5%AE%A2%E8%BF%B7%E9%9B%BE%E4%B8%8B%E7%9A%84bug/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2019/01/01/%E6%A4%8D%E7%89%A9%E5%9B%AD%E8%B5%8F%E7%81%AF/" title="植物园赏灯——多图流量预警"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2017/02/09/%E8%AE%B0%E4%B8%80%E6%AC%A1kubernetes%E7%BD%91%E7%BB%9C%E8%B0%83%E8%AF%95/" title="记一次kubernetes网络调试"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2017/03/29/%E4%B8%80%E4%B8%AA%E8%97%8F%E5%8C%BF%E5%9C%A8%E9%BB%91%E5%AE%A2%E8%BF%B7%E9%9B%BE%E4%B8%8B%E7%9A%84bug/';
+        
+        this.page.identifier = '一个藏匿在黑客迷雾下的bug';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

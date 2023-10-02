@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>Just for fun.用线程池并行处理ACM多组输入加快运算速度（对于算法提高不推荐） | Hexo</title>
+  <meta name="description" content="做一道google code jam的题目来试试看我的线程池构想，看看速度会不会快很多。 其实这题我的算法并不是最优的，所以才会导致10分钟还出不了答案，要是真在code jam上比赛的话妥妥的跪了。但就算算法不好，我如果充分利用CPU的资源，使用多线程框架，会不会出结果时间快很多呢？试试看吧！ 这个纯粹是玩玩的，如果要提高算法能力的话，不建议这么搞 code jam 原题地址戳这里注：需要翻墙的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Just for fun.用线程池并行处理ACM多组输入加快运算速度（对于算法提高不推荐）">
+<meta property="og:url" content="http://xidui.github.io/2015/04/23/c-threadpool-for-ACM/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="做一道google code jam的题目来试试看我的线程池构想，看看速度会不会快很多。 其实这题我的算法并不是最优的，所以才会导致10分钟还出不了答案，要是真在code jam上比赛的话妥妥的跪了。但就算算法不好，我如果充分利用CPU的资源，使用多线程框架，会不会出结果时间快很多呢？试试看吧！ 这个纯粹是玩玩的，如果要提高算法能力的话，不建议这么搞 code jam 原题地址戳这里注：需要翻墙的">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://xidui.github.io/images/4760B0AE-634C-4244-972D-1E88B80175DB.png">
+<meta property="og:image" content="http://xidui.github.io/images/C6A0A4DF-F3EA-4A2F-A0D1-1294A154198C.png">
+<meta property="og:image" content="http://xidui.github.io/images/B4610B3B-4A64-4B9F-AAD0-1C3D7A7F7AF1.png">
+<meta property="og:image" content="http://xidui.github.io/images/67BAFDA4-9BE8-4C23-8273-DEE1870FD91E.png">
+<meta property="og:image" content="http://xidui.github.io/images/47DDEF31-4A7D-492D-B8FE-A28FA6E3E6D7.png">
+<meta property="og:image" content="http://xidui.github.io/images/4DC61481-975E-490C-B191-AAF20E03BB4F.png">
+<meta property="article:published_time" content="2015-04-24T02:47:27.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:47:08.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="c++">
+<meta property="article:tag" content="threadpool">
+<meta property="article:tag" content="gcj">
+<meta property="article:tag" content="算法">
+<meta property="article:tag" content="并发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://xidui.github.io/images/4760B0AE-634C-4244-972D-1E88B80175DB.png">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2015/04/23/c-threadpool-for-ACM/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-c-threadpool-for-ACM" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Just for fun.用线程池并行处理ACM多组输入加快运算速度（对于算法提高不推荐）
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2015/04/23/c-threadpool-for-ACM/" class="article-date">
+	  <time datetime="2015-04-24T02:47:27.000Z" itemprop="datePublished">2015-04-23</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/c/" rel="tag">c++</a>, <a class="article-tag-link-link" href="/tags/gcj/" rel="tag">gcj</a>, <a class="article-tag-link-link" href="/tags/threadpool/" rel="tag">threadpool</a>, <a class="article-tag-link-link" href="/tags/%E5%B9%B6%E5%8F%91/" rel="tag">并发</a>, <a class="article-tag-link-link" href="/tags/%E7%AE%97%E6%B3%95/" rel="tag">算法</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2015/04/23/c-threadpool-for-ACM/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 29k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 1:46(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <p>做一道google code jam的题目来试试看我的线程池构想，看看速度会不会快很多。</p>
+<p>其实这题我的算法并不是最优的，所以才会导致10分钟还出不了答案，要是真在code jam上比赛的话妥妥的跪了。<br>但就算算法不好，我如果充分利用CPU的资源，使用多线程框架，会不会出结果时间快很多呢？试试看吧！</p>
+<p>这个纯粹是玩玩的，如果要提高算法能力的话，不建议这么搞</p>
+<p><a target="_blank" rel="noopener" href="https://code.google.com/codejam/contest/4224486/dashboard#s=p2">code jam 原题地址戳这里</a><br><em>注：需要翻墙的哦</em></p>
+<span id="more"></span>
+
+<p>先来看效果吧：</p>
+<h3 id="不使用线程池"><a href="#不使用线程池" class="headerlink" title="不使用线程池"></a>不使用线程池</h3><h4 id="cpu负载："><a href="#cpu负载：" class="headerlink" title="cpu负载："></a>cpu负载：</h4><img src="/images/4760B0AE-634C-4244-972D-1E88B80175DB.png" class="">
+<img src="/images/C6A0A4DF-F3EA-4A2F-A0D1-1294A154198C.png" class="">
+<h4 id="运行结果"><a href="#运行结果" class="headerlink" title="运行结果"></a>运行结果</h4><img src="/images/B4610B3B-4A64-4B9F-AAD0-1C3D7A7F7AF1.png" class="">
+<h4 id="不使用线程池，线程池只有1个线程：（20分钟还未输出答案）"><a href="#不使用线程池，线程池只有1个线程：（20分钟还未输出答案）" class="headerlink" title="不使用线程池，线程池只有1个线程：（20分钟还未输出答案）"></a><strong>不使用线程池，线程池只有1个线程：（20分钟还未输出答案）</strong></h4><hr>
+<h3 id="使用线程池"><a href="#使用线程池" class="headerlink" title="使用线程池"></a>使用线程池</h3><h4 id="cpu负载"><a href="#cpu负载" class="headerlink" title="cpu负载"></a>cpu负载</h4><img src="/images/67BAFDA4-9BE8-4C23-8273-DEE1870FD91E.png" class="">
+<img src="/images/47DDEF31-4A7D-492D-B8FE-A28FA6E3E6D7.png" class="">
+<h4 id="运行结果-1"><a href="#运行结果-1" class="headerlink" title="运行结果"></a>运行结果</h4><img src="/images/4DC61481-975E-490C-B191-AAF20E03BB4F.png" class="">
+<h4 id="使用线程池时间：609秒（10个线程处理14个任务）"><a href="#使用线程池时间：609秒（10个线程处理14个任务）" class="headerlink" title="使用线程池时间：609秒（10个线程处理14个任务）"></a><strong>使用线程池时间：609秒（10个线程处理14个任务）</strong></h4><hr>
+<h4 id="贴上我的代码："><a href="#贴上我的代码：" class="headerlink" title="贴上我的代码："></a>贴上我的代码：</h4><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//  main.cpp</span></span><br><span class="line"><span class="comment">//  threadpool</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//  Created by apple on 15/5/1.</span></span><br><span class="line"><span class="comment">//  Copyright (c) 2015年 apple. All rights reserved.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;assert.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;time.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MIN(a, b) (a &gt; b ? b : a)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> MAX(a, b) (a &lt; b ? b : a)</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="type">long</span> <span class="type">long</span> ll;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* multithread template */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> <span class="title class_">worker</span>&#123;</span><br><span class="line">    <span class="type">void</span> *(*process) (<span class="type">void</span> *arg);</span><br><span class="line">    <span class="type">void</span> *arg;</span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">worker</span> *next;</span><br><span class="line"></span><br><span class="line">&#125; CThread_worker;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span>&#123;</span><br><span class="line">    <span class="type">pthread_mutex_t</span> queue_lock;</span><br><span class="line">    <span class="type">pthread_mutex_t</span> input_lock;</span><br><span class="line">    <span class="type">pthread_cond_t</span> queue_ready;</span><br><span class="line">    CThread_worker *queue_head;</span><br><span class="line">    <span class="type">int</span> shutdown;</span><br><span class="line">    <span class="type">pthread_t</span> *threadid;</span><br><span class="line">    <span class="type">int</span> max_thread_num;</span><br><span class="line">    <span class="type">int</span> cur_queue_size;</span><br><span class="line"></span><br><span class="line">&#125; CThread_pool;</span><br><span class="line"><span class="type">static</span> CThread_pool *pool = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">pool_add_worker</span> <span class="params">(<span class="type">void</span> *(*process) (<span class="type">void</span> *arg), <span class="type">void</span> *arg)</span></span>&#123;</span><br><span class="line">    CThread_worker *newworker = (CThread_worker *) <span class="built_in">malloc</span> (<span class="built_in">sizeof</span> (CThread_worker));</span><br><span class="line">    newworker-&gt;process = process;</span><br><span class="line">    newworker-&gt;arg = arg;</span><br><span class="line">    newworker-&gt;next = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="built_in">pthread_mutex_lock</span> (&amp;(pool-&gt;queue_lock));</span><br><span class="line">    CThread_worker *member = pool-&gt;queue_head;</span><br><span class="line">    <span class="keyword">if</span> (member != <span class="literal">NULL</span>)&#123;</span><br><span class="line">        <span class="keyword">while</span> (member-&gt;next != <span class="literal">NULL</span>)</span><br><span class="line">            member = member-&gt;next;</span><br><span class="line">        member-&gt;next = newworker;</span><br><span class="line">    &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">        pool-&gt;queue_head = newworker;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">assert</span> (pool-&gt;queue_head != <span class="literal">NULL</span>);</span><br><span class="line">    pool-&gt;cur_queue_size++;</span><br><span class="line">    <span class="built_in">pthread_mutex_unlock</span> (&amp;(pool-&gt;queue_lock));</span><br><span class="line">    <span class="built_in">pthread_cond_signal</span> (&amp;(pool-&gt;queue_ready));</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span>* <span class="title">thread_routine</span> <span class="params">(<span class="type">void</span> *arg)</span></span>&#123;</span><br><span class="line">    <span class="built_in">fprintf</span> (stderr, <span class="string">&quot;starting thread 0x%lx\n&quot;</span>, (<span class="type">unsigned</span> <span class="type">long</span>)<span class="built_in">pthread_self</span> ());</span><br><span class="line">    <span class="keyword">while</span> (<span class="number">1</span>)&#123;</span><br><span class="line">        <span class="built_in">pthread_mutex_lock</span> (&amp;(pool-&gt;queue_lock));</span><br><span class="line">        <span class="keyword">while</span> (pool-&gt;cur_queue_size == <span class="number">0</span> &amp;&amp; !pool-&gt;shutdown)&#123;</span><br><span class="line">            <span class="built_in">fprintf</span> (stderr, <span class="string">&quot;thread 0x%lx is waiting\n&quot;</span>, (<span class="type">unsigned</span> <span class="type">long</span>)<span class="built_in">pthread_self</span> ());</span><br><span class="line">            <span class="built_in">pthread_cond_wait</span> (&amp;(pool-&gt;queue_ready), &amp;(pool-&gt;queue_lock));</span><br><span class="line">            <span class="built_in">fprintf</span> (stderr, <span class="string">&quot;thread 0x%lx wakeup\n&quot;</span>, (<span class="type">unsigned</span> <span class="type">long</span>)<span class="built_in">pthread_self</span> ());</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (pool-&gt;shutdown)&#123;</span><br><span class="line">            <span class="built_in">pthread_mutex_unlock</span> (&amp;(pool-&gt;queue_lock));</span><br><span class="line">            <span class="built_in">fprintf</span> (stderr, <span class="string">&quot;thread 0x%lx will exit\n&quot;</span>, (<span class="type">unsigned</span> <span class="type">long</span>)<span class="built_in">pthread_self</span> ());</span><br><span class="line">            <span class="built_in">pthread_exit</span> (<span class="literal">NULL</span>);</span><br><span class="line">        &#125;</span><br><span class="line"><span class="comment">//        fprintf (stderr, &quot;thread 0x%lx is starting to work\n&quot;, (unsigned long)pthread_self ());</span></span><br><span class="line">        <span class="built_in">assert</span> (pool-&gt;cur_queue_size != <span class="number">0</span>);</span><br><span class="line">        <span class="built_in">assert</span> (pool-&gt;queue_head != <span class="literal">NULL</span>);</span><br><span class="line">        pool-&gt;cur_queue_size--;</span><br><span class="line">        CThread_worker *worker = pool-&gt;queue_head;</span><br><span class="line">        pool-&gt;queue_head = worker-&gt;next;</span><br><span class="line">        <span class="built_in">pthread_mutex_unlock</span> (&amp;(pool-&gt;queue_lock));</span><br><span class="line">        (*(worker-&gt;process)) (worker-&gt;arg);</span><br><span class="line">        <span class="built_in">free</span> (worker);</span><br><span class="line">        worker = <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">pool_init</span> <span class="params">(<span class="type">int</span> max_thread_num)</span></span>&#123;</span><br><span class="line">    pool = (CThread_pool *) <span class="built_in">malloc</span> (<span class="built_in">sizeof</span> (CThread_pool));</span><br><span class="line">    <span class="built_in">pthread_mutex_init</span> (&amp;(pool-&gt;queue_lock), <span class="literal">NULL</span>);</span><br><span class="line">    <span class="built_in">pthread_mutex_init</span> (&amp;(pool-&gt;input_lock), <span class="literal">NULL</span>);</span><br><span class="line">    <span class="built_in">pthread_cond_init</span> (&amp;(pool-&gt;queue_ready), <span class="literal">NULL</span>);</span><br><span class="line">    pool-&gt;queue_head = <span class="literal">NULL</span>;</span><br><span class="line">    pool-&gt;max_thread_num = max_thread_num;</span><br><span class="line">    pool-&gt;cur_queue_size = <span class="number">0</span>;</span><br><span class="line">    pool-&gt;shutdown = <span class="number">0</span>;</span><br><span class="line">    pool-&gt;threadid = (<span class="type">pthread_t</span> *) <span class="built_in">malloc</span> (max_thread_num * <span class="built_in">sizeof</span> (<span class="type">pthread_t</span>));</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; max_thread_num; ++i)&#123;</span><br><span class="line">        <span class="built_in">pthread_create</span> (&amp;(pool-&gt;threadid[i]), <span class="literal">NULL</span>, thread_routine, <span class="literal">NULL</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">pool_destroy</span> <span class="params">()</span></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (pool-&gt;shutdown) <span class="keyword">return</span> <span class="number">-1</span>;<span class="comment">/*防止两次调用*/</span></span><br><span class="line">    pool-&gt;shutdown = <span class="number">1</span>;</span><br><span class="line">    <span class="built_in">pthread_cond_broadcast</span> (&amp;(pool-&gt;queue_ready));</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; pool-&gt;max_thread_num; i++)</span><br><span class="line">        <span class="built_in">pthread_join</span> (pool-&gt;threadid[i], <span class="literal">NULL</span>);</span><br><span class="line">    <span class="built_in">free</span> (pool-&gt;threadid);</span><br><span class="line">    CThread_worker *head = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">while</span> (pool-&gt;queue_head != <span class="literal">NULL</span>)&#123;</span><br><span class="line">        head = pool-&gt;queue_head;</span><br><span class="line">        pool-&gt;queue_head = pool-&gt;queue_head-&gt;next;</span><br><span class="line">        <span class="built_in">free</span> (head);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">pthread_mutex_destroy</span>(&amp;(pool-&gt;queue_lock));</span><br><span class="line">    <span class="built_in">pthread_cond_destroy</span>(&amp;(pool-&gt;queue_ready));</span><br><span class="line">    <span class="built_in">free</span> (pool);</span><br><span class="line">    pool = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**********************************************************************************************/</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">struct</span> <span class="title class_">Data</span>&#123;</span><br><span class="line">    <span class="type">int</span> test_case;</span><br><span class="line">    <span class="type">int</span> N;</span><br><span class="line">    ll X[<span class="number">3000</span>];</span><br><span class="line">    ll Y[<span class="number">3000</span>];</span><br><span class="line">    ll ans[<span class="number">3000</span>];</span><br><span class="line">&#125;data[<span class="number">101</span>];</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">handleInput</span><span class="params">(<span class="type">int</span> index)</span></span>&#123;</span><br><span class="line">    <span class="built_in">pthread_mutex_lock</span> (&amp;(pool-&gt;input_lock));</span><br><span class="line">    <span class="built_in">scanf</span>(<span class="string">&quot;%d&quot;</span>, &amp;data[index].N);</span><br><span class="line">    <span class="type">int</span> N = data[index].N;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; N; ++i)&#123;</span><br><span class="line">        <span class="built_in">scanf</span>(<span class="string">&quot;%lld %lld&quot;</span>, &amp;data[index].X[i], &amp;data[index].Y[i]);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">pthread_mutex_unlock</span> (&amp;(pool-&gt;input_lock));</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span>* <span class="title">mythread</span> <span class="params">(<span class="type">void</span>* arg)</span></span>&#123;</span><br><span class="line">    <span class="built_in">fprintf</span> (stderr, <span class="string">&quot;threadid is 0x%lx, working on task %d\n&quot;</span>, (<span class="type">unsigned</span> <span class="type">long</span>)<span class="built_in">pthread_self</span> (),*(<span class="type">int</span> *) arg);</span><br><span class="line">    <span class="built_in">handleInput</span>(*(<span class="type">int</span> *) arg);</span><br><span class="line">    <span class="type">int</span> index = *(<span class="type">int</span> *) arg;</span><br><span class="line">    <span class="type">int</span> N = data[index].N;</span><br><span class="line">    <span class="keyword">for</span> (ll i = <span class="number">0</span>; i &lt; N; ++i)&#123;</span><br><span class="line">        ll mi = N - <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span>  j = <span class="number">0</span>; j &lt; N; ++j)&#123;</span><br><span class="line">            <span class="keyword">if</span> (j == i)<span class="keyword">continue</span>;</span><br><span class="line">            ll x1 = data[index].X[i], x2 = data[index].X[j];</span><br><span class="line">            ll y1 = data[index].Y[i], y2 = data[index].Y[j];</span><br><span class="line">            ll a = y2 - y1;</span><br><span class="line">            ll b = x1 - x2;</span><br><span class="line">            ll c = x2 * y1 - x1 * y2;</span><br><span class="line">            ll num1 = <span class="number">0</span> , num2 =<span class="number">0</span>;</span><br><span class="line">            <span class="keyword">for</span> (ll k = <span class="number">0</span>; k &lt; N; ++k)&#123;</span><br><span class="line">                <span class="keyword">if</span> (k == i || k == j)<span class="keyword">continue</span>;</span><br><span class="line">                ll value = a * data[index].X[k] + b * data[index].Y[k] + c;</span><br><span class="line">                <span class="keyword">if</span> (value &gt; <span class="number">0</span>)&#123;</span><br><span class="line">                    num1++;</span><br><span class="line">                &#125;<span class="keyword">else</span> <span class="keyword">if</span>(value &lt; <span class="number">0</span>)&#123;</span><br><span class="line">                    num2++;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            mi = <span class="built_in">MIN</span>(mi, num1);</span><br><span class="line">            mi = <span class="built_in">MIN</span>(mi, num2);</span><br><span class="line">        &#125;</span><br><span class="line">        data[index].ans[i] = mi;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">(<span class="type">int</span> argc, <span class="type">const</span> <span class="type">char</span> * argv[])</span> </span>&#123;</span><br><span class="line">    <span class="type">time_t</span> start = <span class="built_in">time</span>(<span class="literal">NULL</span>), end;</span><br><span class="line">    <span class="built_in">pool_init</span> (<span class="number">1</span>);</span><br><span class="line">    <span class="built_in">freopen</span>(<span class="string">&quot;/Users/apple/Documents/coding/Xcode/Google Code Jam/threadpool/threadpool/C-large-practice.in.txt&quot;</span>, <span class="string">&quot;r&quot;</span>, stdin);</span><br><span class="line">    <span class="built_in">freopen</span>(<span class="string">&quot;/Users/apple/Documents/coding/Xcode/Google Code Jam/threadpool/threadpool/output2.txt&quot;</span>, <span class="string">&quot;w&quot;</span>, stdout);</span><br><span class="line">    <span class="type">int</span> T; <span class="built_in">scanf</span>(<span class="string">&quot;%d&quot;</span>, &amp;T);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">1</span> ; i &lt;= T; ++i)&#123;</span><br><span class="line">        data[i].test_case = i;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">1</span>; i &lt;= T; ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">pool_add_worker</span> (mythread, &amp;data[i].test_case);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">while</span>(pool-&gt;cur_queue_size)<span class="built_in">sleep</span>(<span class="number">1</span>);</span><br><span class="line">    <span class="built_in">pool_destroy</span> ();</span><br><span class="line">    <span class="comment">// output</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">1</span>; i &lt;= T; ++i)&#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Case #%d:\n&quot;</span>, i);</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> j = <span class="number">0</span>; j &lt; data[i].N; ++j)&#123;</span><br><span class="line">            <span class="built_in">printf</span>(<span class="string">&quot;%lld\n&quot;</span>, data[i].ans[j]);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    end = <span class="built_in">time</span>(<span class="literal">NULL</span>);</span><br><span class="line">    <span class="built_in">fprintf</span>(stderr, <span class="string">&quot;time : %ld&quot;</span>, (end - start));</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2015/04/23/c-threadpool-for-ACM/" title="Just for fun.用线程池并行处理ACM多组输入加快运算速度（对于算法提高不推荐）" target="_blank" rel="external">http://xidui.github.io/2015/04/23/c-threadpool-for-ACM/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2015/05/24/next-permutation/" title="next_permutation"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2015/03/19/nodejs-%E6%BA%90%E7%A0%81%E6%B5%85%E6%9E%90-%E4%B8%89-%E2%80%94%E2%80%94%E7%94%A8%E6%88%B7%E6%A8%A1%E5%9D%97%E7%BC%96%E8%AF%91%E5%8A%A0%E8%BD%BD%E5%8E%9F%E7%90%86/" title="nodejs 源码浅析(三)——用户模块编译加载原理"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2015/04/23/c-threadpool-for-ACM/';
+        
+        this.page.identifier = 'c-threadpool-for-ACM';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>

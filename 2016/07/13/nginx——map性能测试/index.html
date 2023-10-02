@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>nginx中map模块的使用及性能测试 | Hexo</title>
+  <meta name="description" content="背景最近我操刀了leetcode的论坛迁移，整个过程持续了几周的时间，总算暂时告了一个段落。常使用leetcode论坛的用户应该已经发现论坛已经大变样了吧~期间遇到了不少坑坑洼洼，将来也还会有好多问题等待去一一解决。关于这个迁移过程中的收货，这篇文章中就不细说了，有时间再另开一篇博文。这篇文章主要关注在url-mapping以及它的性能问题。 问：url-mapping的问题从何而来呢？旧的论坛和">
+<meta property="og:type" content="article">
+<meta property="og:title" content="nginx中map模块的使用及性能测试">
+<meta property="og:url" content="http://xidui.github.io/2016/07/13/nginx%E2%80%94%E2%80%94map%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/index.html">
+<meta property="og:site_name" content="xidui is very lazy">
+<meta property="og:description" content="背景最近我操刀了leetcode的论坛迁移，整个过程持续了几周的时间，总算暂时告了一个段落。常使用leetcode论坛的用户应该已经发现论坛已经大变样了吧~期间遇到了不少坑坑洼洼，将来也还会有好多问题等待去一一解决。关于这个迁移过程中的收货，这篇文章中就不细说了，有时间再另开一篇博文。这篇文章主要关注在url-mapping以及它的性能问题。 问：url-mapping的问题从何而来呢？旧的论坛和">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2016-07-13T08:30:58.000Z">
+<meta property="article:modified_time" content="2018-12-25T16:47:40.000Z">
+<meta property="article:author" content="xidui">
+<meta property="article:tag" content="nginx">
+<meta property="article:tag" content="abtest">
+<meta name="twitter:card" content="summary">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://xidui.github.io/2016/07/13/nginx%E2%80%94%E2%80%94map%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="xidui is very lazy" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/xidui" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.png" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">xidui</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Software Engineer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Mountain View, USA</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav menu-highlight">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget-body">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Life/">Life</a><span class="category-list-count">8</span></li><li class="category-list-item"><a class="category-list-link" href="/categories/Tech/">Tech</a><span class="category-list-count">35</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget-body tagcloud">
+      <a href="/tags/Google/" style="font-size: 13.5px;">Google</a> <a href="/tags/Tencent/" style="font-size: 13.33px;">Tencent</a> <a href="/tags/abtest/" style="font-size: 13px;">abtest</a> <a href="/tags/angularjs/" style="font-size: 13px;">angularjs</a> <a href="/tags/ansible/" style="font-size: 13px;">ansible</a> <a href="/tags/async/" style="font-size: 13px;">async</a> <a href="/tags/asyncio/" style="font-size: 13.17px;">asyncio</a> <a href="/tags/c/" style="font-size: 13.83px;">c++</a> <a href="/tags/career/" style="font-size: 13px;">career</a> <a href="/tags/coroutine/" style="font-size: 13.33px;">coroutine</a> <a href="/tags/dns/" style="font-size: 13px;">dns</a> <a href="/tags/flannel/" style="font-size: 13px;">flannel</a> <a href="/tags/flask/" style="font-size: 13px;">flask</a> <a href="/tags/gcj/" style="font-size: 13.17px;">gcj</a> <a href="/tags/gevent/" style="font-size: 13px;">gevent</a> <a href="/tags/go/" style="font-size: 13px;">go</a> <a href="/tags/hacker/" style="font-size: 13px;">hacker</a> <a href="/tags/http/" style="font-size: 13px;">http</a> <a href="/tags/iptables/" style="font-size: 13px;">iptables</a> <a href="/tags/jquery/" style="font-size: 13px;">jquery</a> <a href="/tags/js/" style="font-size: 13.33px;">js</a> <a href="/tags/kubernetes/" style="font-size: 13.5px;">kubernetes</a> <a href="/tags/linux/" style="font-size: 13px;">linux</a> <a href="/tags/markdown/" style="font-size: 13px;">markdown</a> <a href="/tags/matlab/" style="font-size: 13.17px;">matlab</a> <a href="/tags/mongodb/" style="font-size: 13.5px;">mongodb</a> <a href="/tags/mysql/" style="font-size: 13.17px;">mysql</a> <a href="/tags/nginx/" style="font-size: 13px;">nginx</a> <a href="/tags/node-js/" style="font-size: 13px;">node.js</a> <a href="/tags/nodejs/" style="font-size: 13.83px;">nodejs</a> <a href="/tags/python/" style="font-size: 14px;">python</a> <a href="/tags/shell/" style="font-size: 13px;">shell</a> <a href="/tags/threadpool/" style="font-size: 13.17px;">threadpool</a> <a href="/tags/tornado/" style="font-size: 13.33px;">tornado</a> <a href="/tags/unittest/" style="font-size: 13px;">unittest</a> <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 13px;">分布式</a> <a href="/tags/%E5%B9%B6%E5%8F%91/" style="font-size: 13.5px;">并发</a> <a href="/tags/%E5%BC%82%E6%AD%A5%E9%98%9F%E5%88%97/" style="font-size: 13px;">异步队列</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E6%8C%96%E6%8E%98/" style="font-size: 13px;">数据挖掘</a> <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" style="font-size: 13px;">数据结构</a> <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" style="font-size: 13px;">机器学习</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 13px;">爬虫</a> <a href="/tags/%E7%AE%97%E6%B3%95/" style="font-size: 13.67px;">算法</a> <a href="/tags/%E7%BD%91%E7%BB%9C%E6%94%BB%E9%98%B2/" style="font-size: 13px;">网络攻防</a> <a href="/tags/%E7%BF%BB%E8%AF%91/" style="font-size: 13px;">翻译</a>
+    </div>
+  </div>
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Tech/">Tech</a>
+              </p>
+              <p class="item-title">
+                <a href="/2023/10/01/%E9%9A%8F%E7%AC%94-2023-10-1/" class="title">从谷歌离职</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2023-10-01T23:11:19.000Z" itemprop="datePublished">2023-10-01</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/31/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(4)/" class="title">Google一年工作感受(4)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-31T22:38:23.000Z" itemprop="datePublished">2020-05-31</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/05/03/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(3)/" class="title">Google一年工作感受(3)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-05-03T16:56:59.000Z" itemprop="datePublished">2020-05-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/26/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(2)/" class="title">Google一年工作感受(2)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-26T17:16:45.000Z" itemprop="datePublished">2020-04-26</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                <a class="category-link" href="/categories/Life/">Life</a>
+              </p>
+              <p class="item-title">
+                <a href="/2020/04/19/Google%E4%B8%80%E5%B9%B4%E5%B7%A5%E4%BD%9C%E6%84%9F%E5%8F%97(1)/" class="title">Google一年工作感受(1)</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-04-20T02:30:00.000Z" itemprop="datePublished">2020-04-19</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-nginx——map性能测试" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      nginx中map模块的使用及性能测试
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2016/07/13/nginx%E2%80%94%E2%80%94map%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/" class="article-date">
+	  <time datetime="2016-07-13T08:30:58.000Z" itemprop="datePublished">2016-07-13</time>
+	</a>
+</span>
+        
+  <span class="article-category">
+    <i class="icon icon-folder"></i>
+    <a class="article-category-link" href="/categories/Tech/">Tech</a>
+  </span>
+
+        
+  <span class="article-tag">
+    <i class="icon icon-tags"></i>
+	<a class="article-tag-link-link" href="/tags/abtest/" rel="tag">abtest</a>, <a class="article-tag-link-link" href="/tags/nginx/" rel="tag">nginx</a>
+  </span>
+
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2016/07/13/nginx%E2%80%94%E2%80%94map%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/#comments" class="article-comment-link">Comments</a></span>
+        
+	
+		<span class="post-wordcount hidden-xs" itemprop="wordCount">Word Count: 13k(words)</span>
+	
+	
+		<span class="post-readcount hidden-xs" itemprop="timeRequired">Read Count: 48 mins.(minutes)</span>
+	
+
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h3 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h3><p>最近我操刀了<a href="leetcode.com">leetcode</a>的<a href="discuss.leetcode.com">论坛</a>迁移，整个过程持续了几周的时间，总算暂时告了一个段落。常使用leetcode论坛的用户应该已经发现论坛已经大变样了吧~<br>期间遇到了不少坑坑洼洼，将来也还会有好多问题等待去一一解决。关于这个迁移过程中的收货，这篇文章中就不细说了，有时间再另开一篇博文。这篇文章主要关注在url-mapping以及它的性能问题。</p>
+<p><strong>问</strong>：url-mapping的问题从何而来呢？<br>旧的论坛和新的论坛是两个不同的discuss框架。前者是<a target="_blank" rel="noopener" href="https://github.com/phpbb/phpbb">phpbb</a>，现在是<a target="_blank" rel="noopener" href="https://github.com/NodeBB/NodeBB">nodebb</a>。两者的 <em>url routing</em> 完全不一样，比如说同一个topic，<br>在原来的url是:<br><code>http://hostname/discuss/&lt;topic_id&gt;/&lt;topic_name&gt;</code><br>在新的论坛中是:<br><code>http://hostname/topic/&lt;topic_id&gt;/&lt;topic_slug&gt;</code><br>(这里就不讨论两者甚至连<code>topic_id</code>都不一样的问题了)。<br>而在广袤的互联网海洋中，旧论坛的url可能到处都存在。我们不希望在论坛迁移后，用户点那些链接就失效了。我们希望的是用户访问旧的url可以被重定向到新论坛的某个地址。所以就产生了url-mapping的问题。</p>
+<span id="more"></span>
+
+<h3 id="方法"><a href="#方法" class="headerlink" title="方法"></a>方法</h3><h4 id="生成url-mapping"><a href="#生成url-mapping" class="headerlink" title="生成url-mapping"></a>生成url-mapping</h4><p>感谢<a target="_blank" rel="noopener" href="https://github.com/akhoury/nodebb-plugin-import">nodebb-plugin-import</a>提供了数据迁移以后自动生成url-mapping的方式，省了我自己写脚本生成这些mapping的时间。每一条mapping大致是这样的:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~^/discuss/questions/oj/add-two-numbers\b(\?[^/]*)*/?$  /category/10/add-two-numbers;</span><br></pre></td></tr></table></figure>
+<p>其中的<code>slug</code>和<code>id</code>的mapping是由插件生成的。<code>regular expression</code>是为了匹配url中如果有param添加的。</p>
+<h4 id="Nginx-Map"><a href="#Nginx-Map" class="headerlink" title="Nginx Map"></a>Nginx Map</h4><p><a target="_blank" rel="noopener" href="http://nginx.org/en/docs/http/ngx_http_map_module.html">官方文档</a>的demo可能对于刚想上手的同学来说不是那么友好，还是直接看现成的配置学得快:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">http &#123;</span><br><span class="line">  ...</span><br><span class="line"></span><br><span class="line">  map_hash_max_size 204800;</span><br><span class="line">  map_hash_bucket_size 204800;</span><br><span class="line">  map $request_uri $new &#123;</span><br><span class="line">     include /path/of/your/map/file;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  include /etc/nginx/conf.d/*.conf;</span><br><span class="line">  include /etc/nginx/sites-enabled/*;</span><br><span class="line"></span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">server &#123;</span><br><span class="line">  ...</span><br><span class="line"></span><br><span class="line">  if ($new) &#123;</span><br><span class="line">    rewrite ^ https://discuss.leetcode.com$new redirect;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  location / &#123;</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在server规则匹配中，$new值不为空，说明当前要访问的url已经在http模块的mapping文件中匹配到了，这个时候就不走各种<code>location</code>模块了，直接rewrite成新的地址。<strong>注</strong>:这里要是做成proxy_pass也行，后面的测试中就采用了proxy_pass。但线上的环境，担心nginx的压力太大了，就采用了rewrite方式给它减减压。</p>
+<h3 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h3><p>考虑到mapping的条目有点多，几万量级，又都是正则匹配。每个请求来的时候都会先去看看mapping中有没有，即使mapping使用的是hash的方式也不免会让我对它的性能产生一些担忧，所以性能测试就必须要来一发了。<br><strong>测试方案</strong>:<br>0. 在新机器上跑helloworld</p>
+<ol>
+<li>自动生成随机100个url-mapping，都重定向到helloworld</li>
+<li>使用abtest分别对helloworld和随机url作压测</li>
+<li>增大url-mapping的条目，重复1,2</li>
+</ol>
+<h4 id="压测机器"><a href="#压测机器" class="headerlink" title="压测机器"></a>压测机器</h4><p>临时租了两台阿里云服务器(因为是临时的，所以我也就不在意在后文暴露ip了)。<br>配置都是：1核，2048M内存，40G硬盘。<br>一台用作nginx和helloworld程序，一台专门做abtest。<br><strong>注</strong>：abtest也在阿里云执行只要是为了在一个数据中心降低网络延迟。最后发现效果真不错，rps从100多直接飙升到2700多。</p>
+<h4 id="helloworld"><a href="#helloworld" class="headerlink" title="helloworld"></a>helloworld</h4><p>采用了nodejs的helloworld:</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> http = <span class="built_in">require</span>(<span class="string">&#x27;http&#x27;</span>);</span><br><span class="line"><span class="keyword">var</span> i = <span class="number">0</span>;</span><br><span class="line">http.<span class="title function_">createServer</span>(<span class="keyword">function</span> (<span class="params">req, res</span>) &#123;</span><br><span class="line">  <span class="variable language_">console</span>.<span class="title function_">log</span>(i++);</span><br><span class="line">  res.<span class="title function_">writeHead</span>(<span class="number">200</span>, &#123;<span class="string">&#x27;Content-Type&#x27;</span>: <span class="string">&#x27;text/plain&#x27;</span>&#125;);</span><br><span class="line">  res.<span class="title function_">end</span>(<span class="string">&#x27;Hello World\n&#x27;</span>);</span><br><span class="line">&#125;).<span class="title function_">listen</span>(<span class="number">1337</span>, <span class="string">&quot;0.0.0.0&quot;</span>);</span><br><span class="line"><span class="variable language_">console</span>.<span class="title function_">log</span>(<span class="string">&#x27;Server running at http://0.0.0.0:1337/&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<h4 id="url-mapping"><a href="#url-mapping" class="headerlink" title="url-mapping"></a>url-mapping</h4><p>生成urlmapping写了一个python脚本:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> hashlib</span><br><span class="line"></span><br><span class="line">m2 = hashlib.md5()</span><br><span class="line">current = <span class="string">&quot;hello world&quot;</span></span><br><span class="line">f = <span class="built_in">open</span>(<span class="string">&#x27;./url.map&#x27;</span>, <span class="string">&#x27;w&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">100</span>):</span><br><span class="line">    m2.update(current)</span><br><span class="line">    current = m2.hexdigest()</span><br><span class="line">    f.write(<span class="string">&#x27;~^/hello/world/&#x27;</span> + current + <span class="string">&#x27;\\b(\?[^/]*)*/?$\t/;\n&#x27;</span>)</span><br><span class="line"></span><br><span class="line">f.close()</span><br></pre></td></tr></table></figure>
+
+<p>nginx配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">server &#123;</span><br><span class="line">  listen 80;</span><br><span class="line">  server_name 120.26.138.197;</span><br><span class="line"></span><br><span class="line">  location ^~ /&#123;</span><br><span class="line">    if ($new) &#123;</span><br><span class="line">      proxy_pass http://120.26.138.197:1337$new;</span><br><span class="line">      break;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return 404;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="abtest"><a href="#abtest" class="headerlink" title="abtest"></a>abtest</h4><h5 id="rps测试-request-per-second"><a href="#rps测试-request-per-second" class="headerlink" title="rps测试(request per second)"></a>rps测试(request per second)</h5><p>并发压测使用100000次请求，并发100个用户的方式:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 不走nginx</span></span><br><span class="line">ab -n100000 -c100 120.26.138.197:1337/</span><br><span class="line"><span class="comment"># 走nginx</span></span><br><span class="line">ab -n100000 -c100 120.26.138.197/hello/world/5eb63bbbe01eeed093cb22bb8f5acdc3/</span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th align="left">mapping条目</th>
+<th align="center">直接访问(rps)</th>
+<th align="center">map第一条url(rps)</th>
+<th align="center">map最后一条url(rps)</th>
+<th align="center">不存在的url(rps)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">100</td>
+<td align="center">2829.44</td>
+<td align="center">1819.63</td>
+<td align="center">1765.25</td>
+<td align="center">9740.53</td>
+</tr>
+<tr>
+<td align="left">1000</td>
+<td align="center">-</td>
+<td align="center">1816.00</td>
+<td align="center">1509.52</td>
+<td align="center">4094.68</td>
+</tr>
+<tr>
+<td align="left">10000</td>
+<td align="center">-</td>
+<td align="center">1813.22</td>
+<td align="center">514.24</td>
+<td align="center">658.32</td>
+</tr>
+<tr>
+<td align="left">100000</td>
+<td align="center">-</td>
+<td align="center">1836.02</td>
+<td align="center">62.40</td>
+<td align="center">65.80</td>
+</tr>
+</tbody></table>
+<p><strong>跟预想的一样，mapping的条目确实会对请求效率产生影响。而且几万条的映射在较高并发的情况下已经到了勉强能用的临界了。还好以后mapping的条目不会再增加了，并且论坛的并发很难到100的量级。</strong></p>
+<h5 id="tpr测试-time-per-request"><a href="#tpr测试-time-per-request" class="headerlink" title="tpr测试(time per request)"></a>tpr测试(time per request)</h5><p>因为考虑到服务器比较稳定，减少压测总数。同时把并发用户减为1个。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 不走nginx</span><br><span class="line">ab -n1000 -c1 120.26.138.197:1337/</span><br><span class="line"># 走nginx</span><br><span class="line">ab -n1000 -c1 120.26.138.197/hello/world/5eb63bbbe01eeed093cb22bb8f5acdc3/</span><br></pre></td></tr></table></figure>
+<table>
+<thead>
+<tr>
+<th align="left">mapping条目</th>
+<th align="center">直接访问(ms)</th>
+<th align="center">map第一条url(ms)</th>
+<th align="center">map最后一条url(ms)</th>
+<th align="center">不存在的url(ms)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">100</td>
+<td align="center">0.690</td>
+<td align="center">0.922</td>
+<td align="center">0.933</td>
+<td align="center">0.507</td>
+</tr>
+<tr>
+<td align="left">1000</td>
+<td align="center">-</td>
+<td align="center">0.925</td>
+<td align="center">1.043</td>
+<td align="center">0.648</td>
+</tr>
+<tr>
+<td align="left">10000</td>
+<td align="center">-</td>
+<td align="center">0.921</td>
+<td align="center">2.340</td>
+<td align="center">1.915</td>
+</tr>
+<tr>
+<td align="left">100000</td>
+<td align="center">-</td>
+<td align="center">0.926</td>
+<td align="center">16.321</td>
+<td align="center">15.469</td>
+</tr>
+</tbody></table>
+<p><strong>在并发不是很高的时候mapping的条目可以更多。100000个条目大概只会影响整个请求15ms左右，可以忽略不计。如果说150ms的延迟是可以接受的，那么在一个并发不是很高的情况下，mapping最多可以有100w条，还是很多的</strong></p>
+<h3 id="测试中的不足"><a href="#测试中的不足" class="headerlink" title="测试中的不足"></a>测试中的不足</h3><ol>
+<li>压测的url请求并不随机</li>
+<li>所有的url都被重定向到一个地方。不过从结果来看，nginx确实是根据条目一个个请求的。这点倒没有什么影响</li>
+<li>没有测试<code>http://hostname/path?param=xxx</code>这样类型的url</li>
+</ol>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://xidui.github.io/2016/07/13/nginx%E2%80%94%E2%80%94map%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/" title="nginx中map模块的使用及性能测试" target="_blank" rel="external">http://xidui.github.io/2016/07/13/nginx%E2%80%94%E2%80%94map%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/xidui" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.png" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/xidui" target="_blank"><span class="text-dark">xidui</span><small class="ml-1x">Software Engineer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="disqus_thread">
+        <noscript>Please enable JavaScript to view the <a target="_blank" rel="noopener" href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      </div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2017/01/03/%E6%89%8B%E5%8A%A8%E5%9C%A8kubernetes%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%B7%BB%E5%8A%A0%E8%8A%82%E7%82%B9/" title="手动在kubernetes集群中添加minon"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2016/05/30/%E5%9C%A8linode%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8A%E5%AE%89%E8%A3%85kubernetes%E9%9B%86%E7%BE%A4/" title="在linode服务器上安装kubernetes集群"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/xidui" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="https://www.facebook.com/profile.php?id=100003520148817" target="_blank" title="Facebook" data-toggle=tooltip data-placement=top><i class="icon icon-facebook"></i></a></li>
+        
+        <li><a href="https://www.linkedin.com/in/wang-yue/" target="_blank" title="Linkedin" data-toggle=tooltip data-placement=top><i class="icon icon-linkedin"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+    <script defer>
+    var disqus_config = function () {
+        
+            this.page.url = 'http://xidui.github.io/2016/07/13/nginx%E2%80%94%E2%80%94map%E6%80%A7%E8%83%BD%E6%B5%8B%E8%AF%95/';
+        
+        this.page.identifier = 'nginx——map性能测试';
+    };
+    (function() { 
+        var d = document, s = d.createElement('script');  
+        s.src = '//' + 'xidui-is-very-lazy' + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+
+
+
+
+
+
+
+    <script defer>
+var _hmt = _hmt || [];
+(function() {
+    var hm = document.createElement("script");
+    hm.src = "//hm.baidu.com/hm.js?50dd6f37bd16cd9f0e262d903a6b7d26";
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
+</body>
+</html>
